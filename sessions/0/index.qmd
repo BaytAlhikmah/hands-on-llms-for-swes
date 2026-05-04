@@ -1,0 +1,10 @@
+---
+title: "Session 0: General Discussion about GenAI"
+subtitle: "A broad conversation about Generative AI — what it is, where it's headed, and why it matters."
+---
+
+A general discussion covering the landscape of Generative AI before diving into the hands-on material.
+
+## Session Materials
+
+- [Video](video.qmd) — recorded session

@@ -1,0 +1,35 @@
+---
+title: "Session 1: History, Background, and First Steps"
+subtitle: "An orientation session. No prereqs. Turn hype into curiosity."
+---
+
+An orientation into modern LLMs: a brief history, what actually changed, and your first hands-on API calls.
+
+## Session Materials
+
+- [Lesson](lesson.qmd) — written walkthrough with references
+- [Notebook](notebook.ipynb) — runnable exercises
+- [Video](video.qmd) — recorded session
+
+
+## Pre-readings
+
+### Optional But Recommended
+
+
+**Understanding LLMs** 
+
+- [Google LLM Crash Course](https://developers.google.com/machine-learning/crash-course/llm) — Clear explanation of what LLMs are, how they work at a high level
+
+**Tokenization**
+
+- [OpenAI's Tokenizer Tool](https://platform.openai.com/tokenizer) — Interactive tool to see how text becomes tokens
+- [Hugging Face NLP Course: Tokenizers](https://huggingface.co/learn/nlp-course/chapter2/4) — Understanding why tokenization matters
+
+**Temperature & Sampling** (15 min)
+
+- [OpenRouter's Model Parameters Guide](https://openrouter.ai/docs/parameters) — Explains temperature, top-p, and other sampling parameters
+
+**Tool Use / Function Calling** (10 min)
+
+- [OpenAI's Function Calling Guide](https://platform.openai.com/docs/guides/function-calling) — How LLMs work with arbitrary tools/functions

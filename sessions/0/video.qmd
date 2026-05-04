@@ -1,0 +1,5 @@
+---
+title: "Session 0 · Video"
+---
+
+{{< video https://www.youtube.com/watch?v=jCxB-rZ6PWE >}}
