@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: alhikmah-llms
+Version: 0.1.0
+Summary: Helper utilities for the Hands-on LLMs for SWEs course
+Requires-Python: >=3.10
+Requires-Dist: torch>=2.0
+Requires-Dist: matplotlib>=3.5
+Requires-Dist: numpy>=1.22
