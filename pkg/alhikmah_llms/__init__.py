@@ -1,2 +1,2 @@
 from .transition_learner import TransitionLearner
-from .viz import plot_matrix
+from .viz import plot_matrix, Session2

@@ -1,0 +1,11 @@
+---
+title: "Session 2: Predicting What Comes Next"
+subtitle: "Two problems, one idea. From Rock-Paper-Scissors to character-level language models."
+---
+
+Predict the next move in a game, then the next character in a name. Same core idea at two scales: count transitions, normalize, exploit. Then learn the same probabilities from scratch with a learning algorithm.
+
+## Session Materials
+
+- [Notebook](notebook.ipynb) — runnable exercises
+- [Video](video.qmd) — recorded session
