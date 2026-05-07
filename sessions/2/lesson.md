@@ -8,10 +8,11 @@ By the end of this session, you will understand:
 
 - What **entropy** is, in three different ways: average yes/no questions to guess an outcome, optimal compression size, and average surprise
 - How to compute entropy from a probability distribution, and what "bits" actually measure
+- What **conditional entropy** is and why it matters for prediction
 - That **predictable patterns have low entropy**, and exploiting those patterns is the core of both winning at games and building language models
 - How to build a **transition matrix** by counting: if X just happened, what's the probability of Y next?
 - That normalizing counts gives you a probability distribution, and you can sample from it to generate new sequences
-- That a **learning algorithm** can discover the same probabilities as counting, by automatically finding patterns in the data
+- That a **learning algorithm** can discover the same probabilities as counting, and why learning can generalize while counting cannot
 - Why transition matrices hit a wall when the vocabulary grows (the **V² problem**).
 
 But first, where did these ideas come from? And why do they matter?
@@ -49,7 +50,7 @@ If you play optimally (binary search):
 
 **Answer: 4.** Took **3 questions**.
 
-This isn't luck. With 8 equally likely options, you always need exactly **log₂(8) = 3** yes/no questions. That number — the average questions you need — is called **entropy**.
+This isn't luck. With 8 equally likely options, an optimal strategy needs exactly **log₂(8) = 3** yes/no questions on average — which matches the **entropy** of the distribution.
 
 → **Notebook Exercise 1.** Visualize the binary decision tree for the uniform case (1-8).
 
@@ -148,6 +149,8 @@ Entropy = ∑ P(x) × log₂(1/P(x))
 ## 2. Entropy: The Formula
 
 Here's the general formula. Don't memorize it — just notice what it does:
+
+**Why "bits"?** A **bit** means one binary decision — one yes/no distinction. Because each yes/no question has two possible outcomes, entropy measured with log₂ naturally counts information in bits.
 
 ```python
 import math
@@ -269,36 +272,35 @@ For RPS, it's a 3×3 grid:
 
 → **Notebook Exercise 10.** Count the transitions and fill the matrix.
 
-You'll find something like:
-
-| After Rock | → Paper 60% | → Rock 30% | → Scissors 10% |
-
-**This is not random.** After Rock, your friend heavily favors Paper.
+**Predict first:** do you think the rows will be uniform, or will some moves be favored after others?
 
 ---
 
 ## 6. Entropy of Each Row
 
-Each row of the transition matrix is a probability distribution over the next move. We can compute the entropy of each row using **the same formula from section 2** — but now applied to real data:
+Each row of the transition matrix is a probability distribution over the next move. We can compute the entropy of each row using **the same formula from section 2** — but now applied to real data.
 
 → **Notebook Exercise 10 (continued).** Calculate entropy for each row.
 
-```python
-def row_entropy(probs: list[float]) -> float:
-    return -sum(p * math.log2(p) for p in probs if p > 0)
-
-# After Rock: [0.6, 0.3, 0.1]
-print(f"After Rock: {row_entropy([0.6, 0.3, 0.1]):.3f} bits")
-
-# Random player: [1/3, 1/3, 1/3]
-print(f"Random: {row_entropy([1/3, 1/3, 1/3]):.3f} bits")  # 1.585
-```
-
 **Lower entropy = more predictable = easier to exploit.**
 
-If your friend were truly random, every row would have entropy ≈ 1.585 bits. Instead, you'll see something closer to 1.2 bits after Rock — they're giving away information.
+A truly random player would have entropy ≈ 1.585 bits (= log₂(3)) for every row. Compare that to what you find in your friend's transition matrix — the gap tells you how much exploitable information they're giving away.
 
-**This is Shannon's insight in action:** the entropy gap (1.585 - 1.2 = 0.385 bits) represents the information you can exploit to win more games.
+**This is Shannon's insight in action:** the gap between the maximum entropy (1.585 bits for random) and your friend's actual entropy represents exploitable information.
+
+---
+
+## 6.1. Conditional Entropy
+
+Notice what we just measured: **uncertainty about the next move, given what we already know** (the previous move).
+
+This is called **conditional entropy** — written as H(next | previous).
+
+So far we've measured entropy of single distributions. But transition matrices measure something more useful: **How uncertain is the next thing given the current state?**
+
+You'll compute these values in the notebook. Some rows will have lower entropy (more predictable) and others will be closer to the maximum of 1.585 bits (nearly random). Knowing the previous move **reduces uncertainty**, which is why prediction becomes possible.
+
+**You've been learning conditional entropy all along** — we just didn't name it yet. Every time you see "P(next | current)" or "after X", that's conditional probability, and its entropy is conditional entropy.
 
 ---
 
@@ -312,10 +314,6 @@ Now that you have the probabilities, you can predict their next move and play th
 → **Notebook Exercise 11.** Play against them using the counting model.
 
 **Predict first:** what win rate would you expect against a random player? What about against your friend?
-
-**Results:**
-- Against random: **~33% wins, 33% losses, 33% draws** (no edge)
-- Against your friend: **~50–60% wins** (you're reading them)
 
 The entropy gap translates directly to win rate. **Prediction is exploitation.**
 
@@ -337,13 +335,15 @@ You'll see the loss decrease over time. By the end, the learned probabilities ar
 
 **Key insight:** counting and learning from data solve the same problem. Counting works when the problem is tiny (3 moves, 1,000 examples). Learning works when the problem is huge (30,000 tokens, billions of examples) — you can't count every possible sequence, but you can learn patterns.
 
+**But there's a deeper difference:** Counting can only **memorize** observed transitions. If a transition never appears in your data, counting assigns it probability 0. Learning methods can **generalize** from similar patterns, assigning sensible probabilities even to sequences never seen before. This ability to share statistical structure across similar contexts is what makes neural language models possible.
+
 ---
 
 ## 9. What Is "Loss"?
 
 When the notebook prints "loss = 1.234", what does that number mean?
 
-It's the **average surprise** across all transitions. More precisely, it's **cross-entropy**: the average `-log₂(probability the model assigned to what actually happened)`.
+It's the **average surprise** across all transitions: the average `-log₂(probability the model assigned to what actually happened)`.
 
 Example:
 - Your model says: "After Rock, Paper has probability 0.4"
@@ -357,40 +357,6 @@ Do this for every transition and average. That's the loss.
 If the model were perfect (assigns probability 1.0 to what happens, 0 to everything else), loss would be 0. If the model is terrible (assigns probability 0.1 to what happens), loss is high.
 
 This is what the learning algorithm minimizes. Every time it adjusts the numbers, it's trying to be less surprised by the data.
-
----
-
-## 10. Cross-Entropy vs Entropy
-
-Let's formalize:
-
-```python
-def cross_entropy(true_probs: list[float], model_probs: list[float]) -> float:
-    """Average surprise if you use the wrong probabilities."""
-    return sum(p_true * (-math.log2(p_model))
-               for p_true, p_model in zip(true_probs, model_probs)
-               if p_true > 0)
-```
-
-- **Entropy:** average surprise using the *true* distribution
-- **Cross-entropy:** average surprise using your *model's* distribution
-
-**Fact:** cross-entropy ≥ entropy. Equality only when your model matches reality perfectly.
-
-Example:
-```python
-true = [0.6, 0.3, 0.1]  # After Rock, this is what happens
-model_uniform = [1/3, 1/3, 1/3]  # Model thinks it's uniform
-model_perfect = [0.6, 0.3, 0.1]  # Model is perfect
-
-print(f"Entropy: {entropy(true):.3f}")  # 1.295
-print(f"Cross-entropy (uniform model): {cross_entropy(true, model_uniform):.3f}")  # 1.585
-print(f"Cross-entropy (perfect model): {cross_entropy(true, model_perfect):.3f}")  # 1.295
-```
-
-**Training = minimizing cross-entropy = getting closer to the true entropy.**
-
-This is what's hidden inside `TransitionLearner`. It's measuring cross-entropy on every step and adjusting to lower it.
 
 ---
 
@@ -430,24 +396,7 @@ The `<S>` and `<E>` tokens mark boundaries. Without them, the model wouldn't kno
 
 → **Notebook Exercise 14.** Build a 28×28 count matrix from the training data.
 
-You'll see:
-- Total bigrams: ~200,000
-- Non-zero entries: ~500 / 784 (many pairs never occur)
-
-Look at one row:
-```
-After 'm':
-  m → 'a'  :  5,234 times
-  m → 'e'  :  3,891 times
-  m → 'i'  :  2,456 times
-  m → <E>  :  1,823 times (names ending in 'm')
-  ...
-```
-
-Normalize the counts to probabilities:
-```
-P('a' | 'm') = 5234 / (5234 + 3891 + ... ) ≈ 0.35
-```
+The notebook will show you the full matrix and let you explore which character pairs are common and which never occur. You'll normalize the counts to probabilities — same process as RPS, just a bigger matrix.
 
 ---
 
@@ -455,25 +404,11 @@ P('a' | 'm') = 5234 / (5234 + 3891 + ... ) ≈ 0.35
 
 Now compute the entropy of each row — "After seeing this character, how unpredictable is the next one?"
 
-```python
-# After 'q'
-P_after_q = [0.0, 0.0, ..., 0.95, ...]  # almost always 'u'
-print(f"After 'q': {entropy(P_after_q):.2f} bits")  # ~0.2
+**Predict first:** which characters do you think have the lowest entropy (most predictable next character)? Which have the highest?
 
-# After 'a'
-P_after_a = [0.05, 0.08, 0.12, ...]  # many options
-print(f"After 'a': {entropy(P_after_a):.2f} bits")  # ~3.5
-```
+Think about it: after 'q', what almost always follows? After 'a', how many different characters could come next?
 
-**Average entropy across all characters ≈ 2.5 bits.** That's the average unpredictability per character in English names.
-
-Compare to random:
-```
-Random character: log₂(28) = 4.81 bits
-Bigram model: ~2.5 bits
-```
-
-**We've cut uncertainty in half** just by learning which characters follow which.
+Compare the average conditional entropy of the bigram model to the entropy of random guessing (log₂(28) = 4.81 bits). How much has the model reduced uncertainty?
 
 ---
 
@@ -486,19 +421,9 @@ To generate a name:
 
 → **Notebook Exercise 15.** Generate 20 names using the counting model.
 
-**Predict first:** will they look like real names?
+**Predict first:** will they look like real names? Will they be pronounceable? Will any be complete gibberish?
 
-**Sample output:**
-```
-1. alia
-2. kendra
-3. jace
-4. emira
-5. xan
-...
-```
-
-Some look plausible. Some are weird but pronounceable. None are random gibberish — the model learned *something* about English phonotactics just from counting pairs.
+Run the notebook and see. Think about what the model learned *just from counting pairs* — and what it's still missing.
 
 ---
 
@@ -506,33 +431,11 @@ Some look plausible. Some are weird but pronounceable. None are random gibberish
 
 How do we measure "this model is better than that one"?
 
-We compute **average negative log-likelihood** = **cross-entropy** on a test set:
-
-```python
-def compute_loss(P: list[list[float]], names: list[str]) -> float:
-    total_surprise = 0.0
-    n_bigrams = 0
-    for name in names:
-        chs = ['<S>'] + list(name) + ['<E>']
-        for i in range(len(chs) - 1):
-            curr = chs[i]
-            next = chs[i + 1]
-            prob = P[stoi[curr]][stoi[next]]
-            total_surprise += -math.log2(prob) if prob > 0 else 20.0
-            n_bigrams += 1
-    return total_surprise / n_bigrams
-```
+Same idea as Section 9: compute the **average surprise** across all bigrams in the data. For each bigram, look up the probability the model assigned, compute `-log₂(probability)`, and average across the whole dataset.
 
 → **Notebook Exercise 16.** Compute train and test loss for the counting model.
 
-**Results:**
-```
-Random guessing: 4.81 bits (uniform over 28 chars)
-Bigram model (train): 2.45 bits
-Bigram model (test):  2.47 bits
-```
-
-**Lower is better.** The model is much less surprised by real names than random guessing would be.
+Compare the model's loss to random guessing (log₂(28) = 4.81 bits). How much better is the bigram model? Is the train loss close to the test loss?
 
 ---
 
@@ -540,13 +443,7 @@ Bigram model (test):  2.47 bits
 
 → **Notebook Exercise 17.** Train a `TransitionLearner` on the bigram data.
 
-Watch the loss decrease. After 200 steps, the learned probabilities are nearly identical to the counted ones:
-
-```
-Max absolute difference: 0.002
-Train loss (learned): 2.45 bits
-Test loss (learned):  2.47 bits
-```
+Watch the loss decrease over training steps. How close do the learned probabilities get to the counted ones?
 
 **Same answer, different path.** Counting works because we have enough data to see every bigram hundreds of times. The learning algorithm gets there by iteratively finding patterns that reduce surprise.
 
@@ -556,9 +453,7 @@ Test loss (learned):  2.47 bits
 
 → **Notebook Exercise 18.** Generate names using the learned model.
 
-**Predict first:** will they look different from the counting model's names?
-
-**Answer:** No. The models are identical (within rounding error), so the outputs are the same.
+**Predict first:** will they look different from the counting model's names? Why or why not?
 
 ---
 
@@ -588,15 +483,22 @@ And you'd need trillions of examples to fill it. **This doesn't scale.**
 
 ## Summary
 
-- **Entropy measures unpredictability.** It's the average number of yes/no questions to guess an outcome, the optimal compression size, and the average surprise. All the same math.
-- **Predictable sequences have low entropy.** Your friend's RPS moves had lower entropy than random (1.2 vs 1.585 bits), so you could exploit them.
-- **A transition matrix counts "Y follows X"** and normalizes to probabilities. You can sample from it to generate new sequences.
-- **Learning algorithms can discover the same probabilities as counting** by automatically finding patterns in the data and minimizing cross-entropy (average surprise).
-- **Cross-entropy ≥ entropy.** Training a model = pushing cross-entropy down toward the true entropy.
-- **Loss = cross-entropy = average surprise.** Lower loss = better model.
-- **Character bigrams** are a 28×28 transition matrix. They cut per-character entropy from 4.8 bits (random) to 2.5 bits (bigram model).
-- **Transition matrices hit a V² wall.** For large vocabularies (50K–128K tokens), storing a full V×V matrix is impossible. Modern language models use more efficient representations to solve this scaling problem.
-- The counting model and the learned model produce identical results on this toy problem. But when the data is sparse and the vocabulary is huge, only learning works — and that's why neural language models exist.
+**Core concepts:**
+- **Entropy = unpredictability.** Three equivalent views: average yes/no questions, optimal compression size, average surprise.
+- **Conditional entropy H(Y|X)** measures uncertainty about Y given X. Transition matrices estimate these conditional probabilities.
+- **Lower entropy = exploitable patterns.** When entropy is below the random baseline, you can exploit the difference.
+
+**How models work:**
+- **Transition matrices** count "Y follows X" and normalize to probabilities P(next | current).
+- **Loss = average surprise.** Training minimizes this by learning better probability estimates.
+- **Counting vs learning:** Both find the same probabilities when data is dense. Learning generalizes to unseen patterns; counting cannot.
+
+**The scaling problem:**
+- **V² wall:** A 128K-token vocabulary needs 16 billion parameters for a full transition matrix.
+- Modern LMs use compressed representations that share structure across similar contexts.
+- Character bigrams (28×28) demonstrate the approach before vocabulary explosion forces architectural changes.
+
+That's why we need neural networks: not just for scale, but for generalization.
 
 ---
 
@@ -605,7 +507,7 @@ And you'd need trillions of examples to fill it. **This doesn't scale.**
 1. You computed entropy three different ways (guessing game, compression, surprise). Which framing clicked for you? Which felt least intuitive?
 2. Shannon's key insight was that information = reduction of uncertainty. How does this differ from everyday notions of "information" (like file size or word count)? When would these measures disagree?
 3. The RPS model had lower entropy than random, so you could win. Where else in software do you exploit predictability? (Think: caching, compression, autocomplete, prefetching...)
-4. Cross-entropy is always ≥ entropy. When you trained the model, did the loss reach the true entropy? Why or why not?
+4. The loss measures average surprise. Can the loss ever go below the true entropy of the data? Why or why not?
 5. We generated names by sampling from bigram probabilities. They looked plausible but weird. What information is the bigram model *missing* that a human has?
 6. The V² wall shows that full transition matrices don't scale. What are the tradeoffs between having a complete V×V matrix versus using a more compressed representation?
 7. The loss function is just average surprise. Why does minimizing surprise produce a useful model? What are we assuming about the data?
