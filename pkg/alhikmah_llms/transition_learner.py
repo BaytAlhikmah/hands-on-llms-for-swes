@@ -24,8 +24,9 @@ class TransitionLearner:
             return F.softmax(self.W, dim=1).tolist()
 
     def train(self, xs: list[int], ys: list[int], steps: int = 200,
-              lr: float = 10.0, print_every: int | None = None) -> None:
+              print_every: int | None = None) -> None:
         """Train on (input, target) pairs. Optionally print loss at given interval."""
+        lr = 10.0
         xs_t = torch.tensor(xs)
         ys_t = torch.tensor(ys)
 

@@ -429,21 +429,9 @@ Run the notebook and see. Think about what the model learned *just from counting
 
 ---
 
-## 16. Measuring Quality: Loss
+## 16. Learning Bigrams from Scratch
 
-How do we measure "this model is better than that one"?
-
-Same idea as Section 9: compute the **average surprise** across all bigrams in the data. For each bigram, look up the probability the model assigned, compute `-log₂(probability)`, and average across the whole dataset.
-
-→ **Notebook Exercise 16.** Compute train and test loss for the counting model.
-
-Compare the model's loss to random guessing (log₂(28) = 4.81 bits). How much better is the bigram model? Is the train loss close to the test loss?
-
----
-
-## 17. Learning Bigrams from Scratch
-
-→ **Notebook Exercise 17.** Train a `TransitionLearner` on the bigram data.
+→ **Notebook Exercise 16.** Train a `TransitionLearner` on the bigram data.
 
 Watch the loss decrease over training steps. How close do the learned probabilities get to the counted ones?
 
@@ -451,15 +439,15 @@ Watch the loss decrease over training steps. How close do the learned probabilit
 
 ---
 
-## 18. Generate from the Learned Model
+## 17. Generate from the Learned Model
 
-→ **Notebook Exercise 18.** Generate names using the learned model.
+→ **Notebook Exercise 17.** Generate names using the learned model.
 
 **Predict first:** will they look different from the counting model's names? Why or why not?
 
 ---
 
-## 19. The V² Wall
+## 18. The V² Wall
 
 Our bigram model is a V × V matrix, where V = vocabulary size.
 
@@ -469,7 +457,7 @@ Our bigram model is a V × V matrix, where V = vocabulary size.
 
 You could store these matrices on modern hardware — but you'd never see enough data to fill most entries with meaningful probabilities. **The problem is data sparsity, not storage.**
 
-→ **Notebook Exercise 19.** See the table of vocabulary sizes and memory requirements.
+→ **Notebook Exercise 18.** See the table of vocabulary sizes and memory requirements.
 
 | Vocabulary | V | V² | Memory |
 |------------|---|----|--------|
