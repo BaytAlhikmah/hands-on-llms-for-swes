@@ -1,9 +1,9 @@
 ---
-title: "Session 2: Predicting What Comes Next"
-subtitle: "Two problems, one idea. From Rock-Paper-Scissors to character-level language models."
+title: "Session 2: Measuring Uncertainty"
+subtitle: "Shannon's entropy, transition matrices, and the math behind every language model's loss function."
 ---
 
-Predict the next move in a game, then the next character in a name. Same core idea at two scales: count transitions, normalize, exploit. Then learn the same probabilities from scratch with a learning algorithm.
+How do you measure whether predictions are any good? Claude Shannon answered this in 1948. This session builds his idea from scratch — first on a toy game, then on real data.
 
 ## Session Materials
 

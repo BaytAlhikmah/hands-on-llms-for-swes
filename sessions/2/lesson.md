@@ -1,4 +1,6 @@
-Two problems, one idea. You'll predict the next move in Rock-Paper-Scissors, then the next character in a name. Both use the same approach: count transitions, normalize to probabilities, exploit patterns. Then you'll see how a learning algorithm can discover those same probabilities automatically from data, without explicit counting.
+In session 1, you saw that a language model does one thing: predict the next token. But how do you measure whether those predictions are any good? And how predictable is language in the first place?
+
+In 1948, Claude Shannon answered both questions with a single idea. This session builds that idea from scratch — first on a toy game, then on real data — until you can measure prediction quality the same way every language model does.
 
 Read this alongside `notebook.ipynb` — every hands-on section below maps to a cell you should run.
 
