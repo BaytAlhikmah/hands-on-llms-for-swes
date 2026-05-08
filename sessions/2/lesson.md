@@ -467,7 +467,7 @@ Our bigram model is a V × V matrix, where V = vocabulary size.
 - V = 50,000 words → 2.5 billion parameters
 - V = 128,000 tokens (Llama 3) → **16 billion parameters**
 
-And you'd need trillions of examples to fill it. **This doesn't scale.**
+You could store these matrices on modern hardware — but you'd never see enough data to fill most entries with meaningful probabilities. **The problem is data sparsity, not storage.**
 
 → **Notebook Exercise 19.** See the table of vocabulary sizes and memory requirements.
 
