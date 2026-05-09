@@ -2,4 +2,10 @@
 title: "Session 1 · Video"
 ---
 
+## Part 1
+
 {{< video https://www.youtube.com/watch?v=-x7nXHVHMoE >}}
+
+## Part 2
+
+{{< video https://www.youtube.com/watch?v=MlU-EFgVBK8 >}}

@@ -7,5 +7,29 @@ How do you measure whether predictions are any good? Claude Shannon answered thi
 
 ## Session Materials
 
+- [Lesson](lesson.md) — written walkthrough with references
 - [Notebook](notebook.ipynb) — runnable exercises
 - [Video](video.qmd) — recorded session
+
+## Readings
+
+### Easy
+
+**Information Theory & Entropy**
+
+- [Visual Information Theory](https://colah.github.io/posts/2015-09-Visual-Information/) by Chris Olah — Beautiful visual explanation of entropy, mutual information, and KL divergence
+
+**Compression Algorithms**
+
+- [Huffman Coding](https://go-compression.github.io/algorithms/huffman/) — How variable-length codes achieve near-optimal compression using entropy
+- [Arithmetic Coding](https://go-compression.github.io/algorithms/arithmetic/) — A more sophisticated approach that can achieve compression arbitrarily close to the entropy limit
+
+**N-grams & Language Models**
+
+- [Chapter 3: N-gram Language Models](https://web.stanford.edu/~jurafsky/slp3/3.pdf) from Speech and Language Processing by Jurafsky & Martin — The classic textbook chapter on n-grams and perplexity
+
+### Advanced
+
+**Information Theory Foundations**
+
+- [A Mathematical Theory of Communication](https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf) by Claude Shannon (1948) — The original paper that started it all (Sections I-II are most relevant)

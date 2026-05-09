@@ -191,15 +191,13 @@ print(f"Certain: {entropy(certain):.2f} bits")  # 0.00
 
 Entropy measures unpredictability. In the rest of this session, we'll use it to measure how predictable your friend's Rock-Paper-Scissors moves are, and how predictable English character sequences are.
 
----
-
 ## 3. Three Ways to Think About Entropy
 
 Software engineers come from different backgrounds, so here are three equivalent framings. Pick the one that clicks for you — they're all the same math.
 
 ### A. Guessing Game (you just saw this)
 
-Entropy = average number of yes/no questions to identify the outcome.
+Entropy = lower bound on average number of yes/no questions to identify the outcome.
 
 ### B. Compression
 
@@ -243,6 +241,52 @@ Entropy is just the **expected surprise** — the average over all possible outc
 **This framing is critical for later:** when we train a model, we're minimizing its average surprise on real data. A well-trained model isn't surprised by what actually happens.
 
 → **Notebook Exercise 8.** Explore entropy across different probability distributions using interactive visualizations.
+
+---
+
+### Properties of Entropy
+
+Now that you've seen entropy in action, here are its key mathematical properties. These aren't just formalities — they capture fundamental facts about information and uncertainty.
+
+**1. Non-negativity**
+```
+H(X) ≥ 0
+```
+Entropy is always non-negative. It equals zero only when one outcome has probability 1 (complete certainty).
+
+**2. Maximum Entropy**
+```
+H(X) ≤ log₂(n)
+```
+For a discrete random variable with n possible outcomes, entropy is maximized when all outcomes are equally likely (uniform distribution). Maximum = log₂(n) bits.
+
+**3. Continuity**
+
+H is a continuous function of the probability distribution. Small changes in probabilities lead to small changes in entropy.
+
+**4. Symmetry**
+
+H is invariant under permutation of outcomes. The order doesn't matter, only the probabilities.
+
+**5. Additivity (for independent events)**
+```
+H(X,Y) = H(X) + H(Y)  [if X and Y are independent]
+```
+The joint entropy of two independent random variables equals the sum of their individual entropies.
+
+**6. Chain Rule**
+```
+H(X,Y) = H(X) + H(Y|X)
+```
+Joint entropy equals the entropy of X plus the conditional entropy of Y given X.
+
+**7. Conditioning Reduces Entropy**
+```
+H(Y|X) ≤ H(Y)
+```
+Knowing X can only reduce (or leave unchanged) uncertainty about Y. Information never increases uncertainty. Equality holds when X and Y are independent.
+
+→ **Notebook Exercise 8c.** See these properties demonstrated with concrete examples.
 
 ---
 

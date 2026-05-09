@@ -12,7 +12,7 @@ An orientation into modern LLMs: a brief history, what actually changed, and you
 - [Video](video.qmd) — recorded session
 
 
-## Pre-readings
+## Readings
 
 ### Optional But Recommended
 
