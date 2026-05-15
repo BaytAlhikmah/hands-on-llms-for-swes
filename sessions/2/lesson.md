@@ -10,11 +10,11 @@ By the end of this session, you will understand:
 
 - What **entropy** is, in three different ways: average yes/no questions to guess an outcome, optimal compression size, and average surprise
 - How to compute entropy from a probability distribution, and what "bits" actually measure
-- What **cross-entropy** is and why it's the loss function behind every language model
-- The decomposition **H(P,Q) = H(P) + KL(P||Q)** and why training only minimizes the KL divergence term
-- What **KL divergence** measures and why it's not symmetric
+- What **cross-entropy** is: the bits per symbol when you compress with the wrong distribution
+- The decomposition **H(P,Q) = H(P) + KL(P||Q)**: optimal bits + wasted bits = actual bits
+- What **KL divergence** measures (coding inefficiency) and why it's not symmetric
 - The difference between **bits** (log₂) and **nats** (ln), and why ML uses nats
-- What "loss" means: average surprise of the model on real data
+- Why **prediction IS compression**, connecting information theory to machine learning
 
 But first, where did these ideas come from? And why do they matter?
 
@@ -289,59 +289,70 @@ Knowing X can only reduce (or leave unchanged) uncertainty about Y. Information 
 
 ---
 
-## 4. Cross-Entropy: Measuring Prediction Quality
+## 4. Cross-Entropy: Coding with the Wrong Distribution
 
-Now we move from measuring the uncertainty *in the data* to measuring *how well a model predicts the data*.
+Now we move from measuring the uncertainty *in the data* to measuring what happens when you *design a code for the wrong distribution*.
 
-Entropy H(P) tells you the average surprise when outcomes come from distribution P and you know P. But in machine learning, the true distribution is P while your model predicts a *different* distribution Q. How surprised is your model?
+Suppose data comes from distribution P, but you design your compression scheme assuming distribution Q. What happens?
 
-This is **cross-entropy**:
+**Example: Morse Code for the Wrong Language**
+
+Morse code was designed for English: 'E' gets the shortest code (·), 'T' gets second shortest (−), because they're the most common letters in English. This works great!
+
+But what if you try to transmit French with English Morse code? French uses 'E' more than English does, but also uses accented letters (é, è, à) that English Morse doesn't efficiently encode. You're using a codebook designed for English (Q) to transmit French (P).
+
+**Result:** You waste bits. Your messages are longer than necessary.
+
+This waste is measured by **cross-entropy**:
 
 ```
-H(P,Q) = -∑ P(x) log Q(x)
+H(P,Q) = -∑ P(x) log₂ Q(x)
 ```
 
-It's the average surprise of model Q when reality follows P.
+It's the average number of bits needed per symbol when:
+- Data comes from distribution P (reality)
+- Your code was designed for distribution Q (your assumption)
 
 **Key examples:**
-- If Q = P (perfect model): H(P,Q) = H(P) — minimum possible loss
-- If Q is uniform (knows nothing): H(P,Q) = log(n) — high loss
-- If Q is wrong (predicts the opposite): H(P,Q) is very high — maximum surprise
+- If Q = P (perfect code): H(P,Q) = H(P) — optimal compression
+- If Q is uniform (generic code): H(P,Q) = log₂(n) — no compression
+- If Q is very wrong: H(P,Q) is very high — terrible compression
 
-**Lower cross-entropy = better model.**
+**Lower cross-entropy = better compression = less waste.**
 
-> **Notebook Exercise 9.** Visualize true vs predicted distributions and see how cross-entropy measures the gap.
+> **Notebook Exercise 9.** Visualize true vs assumed distributions and see how cross-entropy measures the coding inefficiency.
 
-> **Notebook Exercise 10.** See which outcomes contribute most to the cross-entropy loss.
+> **Notebook Exercise 10.** See which symbols contribute most to the wasted bits.
 
 > **Notebook Exercise 11.** Implement cross-entropy from scratch.
 
 ---
 
-## 5. What Is "Loss"?
+## 5. A Concrete Example: Huffman Coding with Wrong Assumptions
 
-When a training loop prints "loss = 1.234", what does that number mean?
+Let's make this concrete with Huffman coding — an algorithm that builds optimal compression codes.
 
-It's the **cross-entropy** — the average surprise of the model on the training data. Specifically, for each example:
+**Setup:** You're building a compression system for DNA sequences (A, C, G, T).
 
-1. The model outputs a predicted distribution Q over possible outcomes
-2. Reality reveals the actual outcome (drawn from the true distribution P)
-3. The surprise is `-log Q(actual outcome)`
+**Scenario 1: You have the right distribution**
+- Your analysis says: A=40%, C=30%, G=20%, T=10%
+- You build a Huffman code based on this
+- Optimal code lengths: A=1 bit, C=2 bits, G=2 bits, T=3 bits
+- Average bits per symbol: 0.4×1 + 0.3×2 + 0.2×2 + 0.1×3 = 1.7 bits
+- This equals H(P) = 1.7 bits — perfect!
 
-Average this over all examples and you get the loss.
+**Scenario 2: You assumed wrong**
+- You *assumed* uniform: A=25%, C=25%, G=25%, T=25%
+- You built a code with all symbols = 2 bits
+- But actual data has A=40%, C=30%, G=20%, T=10%
+- Average bits per symbol: 2.0 bits (since every symbol uses 2 bits)
+- This equals H(P,Q) = 2.0 bits
 
-**Example:**
-- Your model says: "After 'q', 'u' has probability 0.6"
-- Reality: 'u' appears
-- Surprise: -ln(0.6) = 0.511 nats
+**You wasted 0.3 bits per symbol** by using the wrong distribution!
 
-Do this for every prediction and average. That's the loss.
+The waste is exactly KL(P||Q), which we'll see next.
 
-**Lower loss = less surprised = better model.**
-
-If the model were perfect (assigns probability 1.0 to what happens, 0 to everything else), loss would be 0. If the model is terrible (assigns probability 0.01 to what happens), loss is high.
-
-This is what the learning algorithm minimizes. Every time it adjusts parameters, it's trying to be less surprised by the data.
+**Key insight:** Cross-entropy measures coding efficiency. If you know the true distribution P, you can compress to H(P) bits per symbol. If you design for Q instead, you use H(P,Q) bits per symbol — and the difference is wasted space.
 
 ---
 
@@ -371,115 +382,175 @@ Cross-Entropy = Entropy + KL Divergence
 H(P,Q)        = H(P)   + KL(P||Q)
 ```
 
-What does this mean?
+In compression terms:
 
-- **H(P)** is the entropy of the true distribution — the irreducible uncertainty in the data. No model can do better than this. It's a property of the problem, not the model.
-- **KL(P||Q)** is the KL divergence — how much *extra* surprise the model adds beyond what's inherent in the data. This is the gap between your model and perfection.
+```
+Actual bits used = Optimal bits + Wasted bits
+H(P,Q)           = H(P)         + KL(P||Q)
+```
 
-**When training a model, H(P) is constant.** You can't change the data. So minimizing cross-entropy is equivalent to minimizing KL divergence — making your model's predictions match reality as closely as possible.
+What does each term mean?
 
-The minimum possible loss is H(P), achieved when Q = P (KL = 0).
+- **H(P)** is the entropy of the true distribution — the theoretical minimum bits per symbol. No compression scheme can do better. This is a property of the data itself.
+- **KL(P||Q)** is the KL divergence — the *extra* bits you waste per symbol by using the wrong code. This is the inefficiency introduced by using distribution Q when the reality is P.
 
-> **Notebook Exercise 13.** Visualize the decomposition as a stacked bar chart.
+**When you build a compression system, H(P) is fixed.** You can't change the data's entropy. So minimizing bits used (cross-entropy) is equivalent to minimizing wasted bits (KL divergence) — making your assumed distribution Q match reality P as closely as possible.
+
+The best possible compression uses H(P) bits per symbol, achieved when Q = P (zero waste, KL = 0).
+
+> **Notebook Exercise 13.** Visualize the decomposition as a stacked bar chart: optimal bits + wasted bits = total bits.
 
 ---
 
-## 8. KL Divergence
+## 8. KL Divergence: The Wasted Bits
 
-KL divergence (Kullback-Leibler divergence) measures how one probability distribution differs from another:
+KL divergence (Kullback-Leibler divergence) measures the coding inefficiency — the extra bits you waste by using the wrong distribution:
 
 ```
-KL(P||Q) = ∑ P(x) log(P(x) / Q(x))
+KL(P||Q) = ∑ P(x) log₂(P(x) / Q(x))
+```
+
+Equivalently:
+```
+KL(P||Q) = H(P,Q) - H(P)
+         = (bits you actually use) - (optimal bits)
+         = wasted bits per symbol
 ```
 
 **Key properties:**
 
-1. **Non-negative:** KL(P||Q) ≥ 0, always
-2. **Zero iff equal:** KL(P||Q) = 0 if and only if P = Q
-3. **NOT symmetric:** KL(P||Q) ≠ KL(Q||P) in general
+1. **Non-negative:** KL(P||Q) ≥ 0, always. You can't use fewer bits than optimal.
+2. **Zero iff equal:** KL(P||Q) = 0 if and only if P = Q. Zero waste only when your code is optimal.
+3. **NOT symmetric:** KL(P||Q) ≠ KL(Q||P) in general.
 
-The asymmetry matters:
-- **Forward KL:** KL(P||Q) — penalizes when Q assigns low probability where P is high. The model must cover all modes of the data. This is what ML training minimizes.
-- **Reverse KL:** KL(Q||P) — penalizes when Q assigns high probability where P is low. The model avoids putting mass where the data isn't.
+**Why asymmetry?**
+
+The asymmetry has a clear interpretation:
+
+- **KL(P||Q):** You design a code for Q, but data comes from P. You waste bits when P has high probability but Q gave it a long code.
+- **KL(Q||P):** You design a code for P, but data comes from Q. You waste bits when Q has high probability but P gave it a long code.
+
+Different scenarios, different waste!
+
+**Example:**
+- True distribution P: A=80%, B=20%
+- Wrong assumption Q: A=50%, B=50%
+- Forward KL(P||Q): You designed a code treating A and B equally, but A appears 80% of the time. You gave A a longer code than needed. High waste!
+- Reverse KL(Q||P): You designed a code optimized for A=80%, but data is actually balanced. Less problematic.
 
 > **Notebook Exercise 14.** Compute KL divergence and verify the decomposition.
 
-> **Notebook Exercise 15.** See that KL(P||Q) ≠ KL(Q||P) with concrete examples.
+> **Notebook Exercise 15.** See that KL(P||Q) ≠ KL(Q||P) with concrete examples showing different waste patterns.
 
 ---
 
-## 9. Training = Minimizing Cross-Entropy
+## 9. Adaptive Compression: Learning the Distribution
 
-Now we can state precisely what "training" means:
+Now imagine you're building an *adaptive* compression system:
 
-1. You have training data drawn from some true distribution P
-2. Your model produces a predicted distribution Q (parameterized by weights)
-3. Training adjusts the weights to minimize H(P,Q)
-4. Since H(P) is constant, this is equivalent to minimizing KL(P||Q)
-5. The model converges when Q ≈ P
+1. You observe data coming from some unknown distribution P
+2. You build a code assuming distribution Q (which starts as a guess)
+3. You measure how many bits you're using: H(P,Q)
+4. You update Q to reduce the bits used
+5. Since H(P) is constant (data's inherent entropy), reducing H(P,Q) means reducing KL(P||Q) — reducing wasted bits
+6. Your code converges toward optimal when Q ≈ P
 
-As training progresses:
-- The predicted distribution Q moves closer to the true distribution P
-- Cross-entropy decreases toward H(P)
-- KL divergence decreases toward 0
+This is exactly what happens in **arithmetic coding** and **adaptive Huffman coding** — practical compression algorithms that learn the distribution on the fly!
 
-> **Notebook Exercise 16.** Watch a model converge: Q approaches P over training steps.
+As the compressor adapts:
+- The assumed distribution Q moves closer to the true distribution P
+- Bits per symbol decreases from H(P,Q) toward H(P)
+- Wasted bits (KL divergence) decreases toward 0
 
-> **Notebook Exercise 17.** Visualize the cross-entropy loss surface and see the unique minimum at Q = P.
+> **Notebook Exercise 16.** Watch a code adapt: Q approaches P over time, bits decrease.
 
----
-
-## 10. Cross-Entropy in Practice
-
-Let's connect this to a concrete example. Consider a bigram model predicting what character follows 'q':
-
-- True distribution P: 'u' appears 99% of the time
-- Early in training: model predicts uniformly → high cross-entropy
-- Late in training: model predicts 'u' with high probability → low cross-entropy
-
-The cross-entropy drops from ~1.6 nats (uniform) to ~0.06 nats (near-perfect prediction for this context).
-
-In practice, we monitor training by plotting **loss curves** — cross-entropy over epochs:
-- Training loss should decrease smoothly
-- Validation loss should track training loss
-- If validation >> training → overfitting
-- If both plateau → model converged
-
-> **Notebook Exercise 18.** See cross-entropy decrease as a bigram model learns.
-
-> **Notebook Exercise 19.** Interpret training and validation loss curves.
+> **Notebook Exercise 17.** Visualize the cross-entropy surface and see the unique minimum at Q = P.
 
 ---
 
-## 11. Building Intuition
+## 10. Compression in Practice: Context-Dependent Codes
 
-The best way to internalize cross-entropy is to experiment. Try different true and predicted distributions and observe how cross-entropy changes:
+Let's make this concrete with English text compression.
 
-- **Confident and correct** → low cross-entropy
-- **Uncertain (uniform)** → moderate cross-entropy
-- **Confident and wrong** → very high cross-entropy!
+Consider compressing text where the previous character is 'q':
 
-Being confidently wrong is worse than being uncertain. This is why well-calibrated models (that know what they don't know) are valuable.
+- True distribution P: 'u' appears 99% of the time after 'q'
+- Naive code (uniform assumption): every letter gets ~5 bits → uses ~5 bits per character
+- Smart code (learned distribution): 'u' gets 1 bit, rare letters get longer codes → uses ~1 bit per character
 
-> **Notebook Exercise 20.** Experiment with your own distributions.
+The compression ratio improves dramatically: from 5 bits to 1 bit!
 
-> **Notebook Exercise 21.** Visualize custom examples.
+This is exactly what **context-based compression** algorithms like PPM (Prediction by Partial Matching) do — they use different codes depending on context. After 'q', they use a code optimized for "mostly 'u'". After 't', they use a code optimized for "mostly 'h' or 'e'".
+
+**Measuring compression quality:**
+- Start with a generic code (uniform Q) → high bits per character (high H(P,Q))
+- Learn from data, refine Q → fewer bits per character
+- Best possible: Q = P → minimum bits (H(P))
+
+The bit rate H(P,Q) tells you how well your compression is working!
+
+> **Notebook Exercise 18.** See bits per character decrease as you refine distribution Q.
+
+> **Notebook Exercise 19.** Compare bit rates for different compression schemes.
+
+---
+
+## 11. Building Intuition: Good Codes vs Bad Codes
+
+The best way to internalize cross-entropy is to experiment with different codes. Try different assumed distributions Q and observe how compression efficiency changes:
+
+- **Good match (Q ≈ P)** → low cross-entropy → efficient compression (few wasted bits)
+- **Generic code (uniform Q)** → moderate cross-entropy → no compression (every symbol same length)
+- **Very wrong (Q opposite of P)** → very high cross-entropy → terrible compression (short codes for rare symbols!)
+
+Being very wrong is worse than being generic. A uniform code at least doesn't waste much. A badly mismatched code (short codes for rare symbols, long codes for common ones) can actually make files *larger* than uncompressed!
+
+**Real-world example:** If you compressed Spanish text with a code optimized for Japanese character frequencies, you'd get massive files. A generic ASCII encoding would actually work better.
+
+> **Notebook Exercise 20.** Experiment with different assumed distributions and see compression efficiency.
+
+> **Notebook Exercise 21.** Visualize custom examples: optimal codes vs mismatched codes.
 
 ---
 
 ## Summary
 
-**Entropy (Part 0):**
+**Entropy:**
 - **Entropy = unpredictability.** Three equivalent views: average yes/no questions, optimal compression size, average surprise.
 - **Key properties:** non-negative, maximized by uniform distribution, conditioning reduces entropy.
 - Measured in **bits** (log₂).
 
-**Cross-Entropy and KL Divergence (Parts 1-4):**
-- **Cross-entropy H(P,Q)** = average surprise of model Q when reality follows P.
-- **Decomposition:** H(P,Q) = H(P) + KL(P||Q). Training minimizes KL(P||Q).
-- **KL divergence** is NOT symmetric. Forward KL (what ML uses) ensures the model covers all modes.
-- **Loss = cross-entropy** in nats (natural log). Lower loss = better model.
-- **Training** = adjusting parameters to minimize cross-entropy = making Q match P.
+**Cross-Entropy: Compression with Wrong Assumptions:**
+- **Cross-entropy H(P,Q)** = average bits per symbol when you design a code for Q but data comes from P.
+- If Q = P: optimal compression at H(P) bits per symbol.
+- If Q ≠ P: you use H(P,Q) > H(P) bits per symbol — wasted space!
+
+**KL Divergence: Measuring the Waste:**
+- **Decomposition:** H(P,Q) = H(P) + KL(P||Q)
+  - H(P) = optimal bits (data's inherent entropy)
+  - KL(P||Q) = wasted bits (inefficiency from wrong distribution)
+- **KL divergence** is NOT symmetric: KL(P||Q) ≠ KL(Q||P). Different mismatches waste bits differently.
+- **Minimizing cross-entropy** = minimizing wasted bits = learning the true distribution.
+
+**Connection to Machine Learning:**
+
+You might be wondering: what does compression have to do with predicting the next token?
+
+**Everything.** Prediction IS compression.
+
+Think about it: If you can perfectly predict what comes next, you don't need to store it — just store the prediction. If you can't predict at all, you need to store every symbol fully. Good prediction = good compression.
+
+Shannon showed that the best possible compression rate for a sequence equals its entropy — which equals the uncertainty in predicting the next symbol. The two problems are mathematically identical.
+
+This is why language models minimize cross-entropy loss. When a model predicts the next token:
+- The model outputs a distribution Q (probability over next tokens)
+- Reality reveals the actual next token (drawn from distribution P)
+- Cross-entropy H(P,Q) measures the "bits per token" if you compressed with Q but reality is P
+- Training minimizes cross-entropy = minimizes bits needed = maximizes prediction quality
+
+**Prediction quality = Compression efficiency = Low cross-entropy.** Same thing, three names.
+
+In Session 3, you'll see this connection in action: building models that predict (and implicitly compress) real sequences.
 
 **What's next (Session 3):**
 - Apply these concepts to real data: Rock-Paper-Scissors and character bigrams
@@ -492,9 +563,10 @@ Being confidently wrong is worse than being uncertain. This is why well-calibrat
 
 1. You computed entropy three different ways (guessing game, compression, surprise). Which framing clicked for you? Which felt least intuitive?
 2. Shannon's key insight was that information = reduction of uncertainty. How does this differ from everyday notions of "information" (like file size or word count)? When would these measures disagree?
-3. Cross-entropy decomposes into H(P) + KL(P||Q). Why is it important that H(P) is constant during training? What would go wrong if it weren't?
-4. KL divergence is not symmetric. In what practical situations would the choice between KL(P||Q) and KL(Q||P) lead to different model behavior?
-5. Being "confidently wrong" produces higher cross-entropy than being "uncertain." How does this relate to model calibration? Why might a well-calibrated model be preferred over a more accurate but poorly calibrated one?
-6. The loss function is just average surprise. Why does minimizing surprise produce a useful model? What are we assuming about the data?
-7. We switched from bits (log₂) to nats (ln) for ML. Does the choice of log base affect what the model learns, or only the numerical scale of the loss?
-8. In session 1, you saw that LLMs predict the next *token*. How would cross-entropy loss differ between a character-level model and a token-level model trained on the same text?
+3. Cross-entropy decomposes into H(P) + KL(P||Q). In compression terms: optimal bits + wasted bits = actual bits. Why is H(P) fixed? What determines it?
+4. KL divergence is not symmetric. Can you think of a practical example where compressing P-data with a Q-code wastes different amounts than compressing Q-data with a P-code?
+5. Being "very wrong" (Q opposite of P) produces higher cross-entropy than being "generic" (uniform Q). Why is a mismatched code worse than no compression at all? When would you prefer a generic code over a learned one?
+6. Morse code assigns short codes to frequent English letters. What would happen if you used Morse code to transmit: (a) German text, (b) DNA sequences, (c) random bits? Estimate whether cross-entropy would be higher or lower than optimal.
+7. We switched from bits (log₂) to nats (ln) for ML. Does the choice of log base affect compression or prediction, or only the numerical scale?
+8. The summary claims "prediction IS compression." Can you explain this connection? Why does a model that's good at predicting the next token also achieve good compression?
+9. In session 1, you saw that LLMs predict the next *token*. How would the entropy (bits per symbol) differ between a character-level model and a token-level model trained on the same text? Which would have lower entropy per *position*? Why?
