@@ -79,8 +79,8 @@ def plot_matrix(matrix: list[list[float]] | npt.NDArray,
     plt.show()
 
 
-class Session2:
-    """Visualizations for Session 2: Entropy and Decision Trees."""
+class Chapter2:
+    """Visualizations for Chapter 2: Entropy and Decision Trees."""
 
     @staticmethod
     def _draw_box(ax, x: float, y: float, text: str,
@@ -1088,3 +1088,596 @@ class Session2:
 
         fig = go.Figure(data=[surface, markers, edges], layout=layout)
         return fig
+    
+    @staticmethod
+    def draw_node(ax, x, y, text, color='lightblue', radius=0.4):
+        """Draw a circular node."""
+        circle = plt.Circle((x, y), radius, color=color, ec='black', linewidth=2)
+        ax.add_patch(circle)
+        ax.text(x, y, text, ha='center', va='center', fontsize=9, weight='bold')
+
+    @staticmethod
+    def draw_edge(ax, x1, y1, x2, y2, label='', color='black'):
+        """Draw an edge between nodes."""
+        ax.plot([x1, x2], [y1, y2], color=color, linewidth=2)
+        if label:
+            mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
+            ax.text(mid_x, mid_y + 0.2, label, ha='center', fontsize=10, 
+                    weight='bold', color=color)
+
+    @staticmethod
+    def draw_uniform_tree():
+        fig, ax = plt.subplots(figsize=(10, 8))
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        ax.axis('off')
+        ax.set_title('Tree 2: Uniform Codebook Q (A=25%, B=25%, C=25%, D=25%)\n' +
+                    'Used to encode P: Average = 2.0 bits = H(P,Q)', 
+                    fontsize=14, weight='bold', pad=20, color='darkred')
+        
+        # Root
+        Chapter2.draw_node(ax, 5, 8, 'Root', 'lightgray')
+        
+        # Level 1: Split A,B vs C,D
+        Chapter2.draw_edge(ax, 4.7, 7.7, 3, 5.3, '0', 'green')
+        Chapter2.draw_node(ax, 3, 5, '', 'lightgray', 0.35)
+        
+        Chapter2.draw_edge(ax, 5.3, 7.7, 7, 5.3, '1', 'red')
+        Chapter2.draw_node(ax, 7, 5, '', 'lightgray', 0.35)
+        
+        # Level 2 left: A vs B
+        Chapter2.draw_edge(ax, 2.7, 4.7, 2, 2.8, '0', 'green')
+        Chapter2.draw_node(ax, 2, 2.5, 'A\n60%', '#FF6B6B', 0.45)
+        ax.text(2, 1.3, 'Code: 00\n2 bits', ha='center', fontsize=8,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+        
+        Chapter2.draw_edge(ax, 3.3, 4.7, 4, 2.8, '1', 'red')
+        Chapter2.draw_node(ax, 4, 2.5, 'B\n20%', '#4ECDC4', 0.45)
+        ax.text(4, 1.3, 'Code: 01\n2 bits', ha='center', fontsize=8,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+        
+        # Level 2 right: C vs D
+        Chapter2.draw_edge(ax, 6.7, 4.7, 6, 2.8, '0', 'green')
+        Chapter2.draw_node(ax, 6, 2.5, 'C\n10%', '#45B7D1', 0.45)
+        ax.text(6, 1.3, 'Code: 10\n2 bits', ha='center', fontsize=8,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+        
+        Chapter2.draw_edge(ax, 7.3, 4.7, 8, 2.8, '1', 'red')
+        Chapter2.draw_node(ax, 8, 2.5, 'D\n10%', '#FFA07A', 0.45)
+        ax.text(8, 1.3, 'Code: 11\n2 bits', ha='center', fontsize=8,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+        
+        # Summary with waste highlighted
+        summary = ('Encoding AAAAAABBCD with uniform codes:\n' +
+                '6×(2 bits) + 2×(2 bits) + 1×(2 bits) + 1×(2 bits) = 20 bits\n' +
+                'Average: 20/10 = 2.0 bits per character\n' +
+                '━━━━━━━━━━━━━━━━━━━━\n' +
+                'WASTED: 2.0 - 1.6 = 0.4 bits per character!')
+        ax.text(5, -1.5, summary, ha='center', fontsize=10, 
+            bbox=dict(boxstyle='round', facecolor='#FFB6C6', alpha=0.7),
+            family='monospace', weight='bold')
+        
+        plt.tight_layout()
+        return fig
+    
+    @staticmethod
+    def draw_optimal_tree():
+        fig, ax = plt.subplots(figsize=(10, 8))
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        ax.axis('off')
+        ax.set_title('Tree 1: Optimal for P (A=60%, B=20%, C=10%, D=10%)\n' +
+                    'Average: 1.6 bits = H(P)', fontsize=14, weight='bold', pad=20)
+        
+        # Root
+        Chapter2.draw_node(ax, 5, 8, 'Root', 'lightgray')
+        
+        # Level 1: A (left) vs others (right)
+        Chapter2.draw_edge(ax, 4.7, 7.7, 2.5, 5.3, '0', 'green')
+        Chapter2.draw_node(ax, 2.5, 5, 'A\n60%', '#FF6B6B', 0.5)
+        ax.text(2.5, 3.8, 'Code: 0\n1 bit', ha='center', fontsize=9,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+        
+        Chapter2.draw_edge(ax, 5.3, 7.7, 7.5, 5.3, '1', 'red')
+        Chapter2.draw_node(ax, 7.5, 5, '', 'lightgray', 0.35)
+        
+        # Level 2: B vs (C,D)
+        Chapter2.draw_edge(ax, 7.2, 4.7, 6, 2.8, '0', 'green')
+        Chapter2.draw_node(ax, 6, 2.5, 'B\n20%', '#4ECDC4', 0.45)
+        ax.text(6, 1.3, 'Code: 10\n2 bits', ha='center', fontsize=8,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+        
+        Chapter2.draw_edge(ax, 7.8, 4.7, 9, 2.8, '1', 'red')
+        Chapter2.draw_node(ax, 9, 2.5, '', 'lightgray', 0.3)
+        
+        # Level 3: C vs D
+        Chapter2.draw_edge(ax, 8.7, 2.2, 8.2, 0.8, '0', 'green')
+        Chapter2.draw_node(ax, 8.2, 0.5, 'C\n10%', '#45B7D1', 0.35)
+        ax.text(8.2, -0.5, '110\n3 bits', ha='center', fontsize=7)
+        
+        Chapter2.draw_edge(ax, 9.3, 2.2, 9.8, 0.8, '1', 'red')
+        Chapter2.draw_node(ax, 9.8, 0.5, 'D\n10%', '#FFA07A', 0.35)
+        ax.text(9.8, -0.5, '111\n3 bits', ha='center', fontsize=7)
+        
+        # Summary
+        summary = ('Encoding AAAAAABBCD:\n' +
+                '6×(1 bit) + 2×(2 bits) + 1×(3 bits) + 1×(3 bits) = 16 bits\n' +
+                'Average: 16/10 = 1.6 bits per character')
+        ax.text(5, -1.5, summary, ha='center', fontsize=10, 
+            bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.5),
+            family='monospace')
+        
+        plt.tight_layout()
+        return fig
+    
+    @staticmethod
+    def draw_wrong_biased_tree():
+        fig, ax = plt.subplots(figsize=(10, 8))
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        ax.axis('off')
+        ax.set_title('Tree 3: Wrong-Biased Codebook Q (A=25%, B=12.5%, C=50%, D=12.5%)\n' +
+                    'Used to encode P: Average = 2.2 bits = H(P,Q)',
+                    fontsize=14, weight='bold', pad=20, color='darkred')
+        
+        # Root
+        Chapter2.draw_node(ax, 5, 8, 'Root', 'lightgray')
+        
+        # Level 1: C (left) vs others (right) - WRONG PRIORITY!
+        Chapter2.draw_edge(ax, 4.7, 7.7, 2.5, 5.3, '0', 'green')
+        Chapter2.draw_node(ax, 2.5, 5, 'C\n10%', '#45B7D1', 0.5)
+        ax.text(2.5, 6, 'Wrong!\nShould be A', ha='center', fontsize=8,
+            color='red', weight='bold', style='italic')
+        ax.text(2.5, 3.8, 'Code: 0\n1 bit', ha='center', fontsize=9,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+        
+        Chapter2.draw_edge(ax, 5.3, 7.7, 7.5, 5.3, '1', 'red')
+        Chapter2.draw_node(ax, 7.5, 5, '', 'lightgray', 0.35)
+        
+        # Level 2: A vs (B,D)
+        Chapter2.draw_edge(ax, 7.2, 4.7, 6, 2.8, '0', 'green')
+        Chapter2.draw_node(ax, 6, 2.5, 'A\n60%', '#FF6B6B', 0.45)
+        ax.text(6, 3.5, 'Most frequent\nbut 2 bits!', ha='center', fontsize=7,
+            color='red', weight='bold', style='italic')
+        ax.text(6, 1.3, 'Code: 10\n2 bits', ha='center', fontsize=8,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+
+        Chapter2.draw_edge(ax, 7.8, 4.7, 9, 2.8, '1', 'red')
+        Chapter2.draw_node(ax, 9, 2.5, '', 'lightgray', 0.3)
+
+        # Level 3: B vs D
+        Chapter2.draw_edge(ax, 8.7, 2.2, 8.2, 0.8, '0', 'green')
+        Chapter2.draw_node(ax, 8.2, 0.5, 'B\n20%', '#4ECDC4', 0.35)
+        ax.text(8.2, -0.5, '110\n3 bits', ha='center', fontsize=7)
+
+        Chapter2.draw_edge(ax, 9.3, 2.2, 9.8, 0.8, '1', 'red')
+        Chapter2.draw_node(ax, 9.8, 0.5, 'D\n10%', '#FFA07A', 0.35)
+        ax.text(9.8, -0.5, '111\n3 bits', ha='center', fontsize=7)
+
+        # Summary with even more waste
+        summary = ('Encoding AAAAAABBCD with wrong-biased codes:\n' +
+                '6×(2 bits) + 2×(3 bits) + 1×(1 bit) + 1×(3 bits) = 22 bits\n' +
+                'Average: 22/10 = 2.2 bits per character\n' +
+                '━━━━━━━━━━━━━━━━━━━━\n' +
+                'WASTED: 2.2 - 1.6 = 0.6 bits per character!\n' +
+                '(Worse than uniform!)')
+        ax.text(5, -1.8, summary, ha='center', fontsize=10, 
+            bbox=dict(boxstyle='round', facecolor='#FF8888', alpha=0.7),
+            family='monospace', weight='bold')
+        
+        plt.tight_layout()
+        return fig
+    
+    def draw_worst_case_tree():
+        fig, ax = plt.subplots(figsize=(10, 8))
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 10)
+        ax.axis('off')
+        ax.set_title('Tree 4: Reversed-Priority Q (A=12.5%, B=12.5%, C=25%, D=50%)\n' +
+                    'Used to encode P: Average = 2.7 bits = H(P,Q)',
+                    fontsize=14, weight='bold', pad=20, color='darkred')
+        
+        # Root
+        Chapter2.draw_node(ax, 5, 8, 'Root', 'lightgray')
+        
+        # Level 1: D (left) vs others (right) - COMPLETELY BACKWARDS!
+        Chapter2.draw_edge(ax, 4.7, 7.7, 2.5, 5.3, '0', 'green')
+        Chapter2.draw_node(ax, 2.5, 5, 'D\n10%', '#FFA07A', 0.5)
+        ax.text(2.5, 6.2, 'DISASTER!\nLeast frequent\ngets 1 bit!', ha='center', fontsize=7, 
+            color='red', weight='bold', style='italic')
+        ax.text(2.5, 3.8, 'Code: 0\n1 bit', ha='center', fontsize=9,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+        
+        Chapter2.draw_edge(ax, 5.3, 7.7, 7.5, 5.3, '1', 'red')
+        Chapter2.draw_node(ax, 7.5, 5, '', 'lightgray', 0.35)
+        
+        # Level 2: C vs (A,B)
+        Chapter2.draw_edge(ax, 7.2, 4.7, 6, 2.8, '0', 'green')
+        Chapter2.draw_node(ax, 6, 2.5, 'C\n10%', '#45B7D1', 0.45)
+        ax.text(6, 3.5, '10% but 2 bits', ha='center', fontsize=7, 
+            color='red', weight='bold', style='italic')
+        ax.text(6, 1.3, 'Code: 10\n2 bits', ha='center', fontsize=8,
+            bbox=dict(boxstyle='round', facecolor='lightyellow'))
+        
+        Chapter2.draw_edge(ax, 7.8, 4.7, 9, 2.8, '1', 'red')
+        Chapter2.draw_node(ax, 9, 2.5, '', 'lightgray', 0.3)
+        
+        # Level 3: A vs B - BOTH MOST FREQUENT GET LONGEST CODES!
+        Chapter2.draw_edge(ax, 8.7, 2.2, 8.2, 0.8, '0', 'green')
+        Chapter2.draw_node(ax, 8.2, 0.5, 'A\n60%', '#FF6B6B', 0.35)
+        ax.text(9.0, 0.5, '\n60% but\n3 bits!', ha='center', fontsize=6, 
+            color='red', weight='bold', style='italic')
+        ax.text(8.2, -0.8, '110\n3 bits', ha='center', fontsize=7,
+            bbox=dict(boxstyle='round', facecolor='#FFE6E6'))
+        
+        Chapter2.draw_edge(ax, 9.3, 2.2, 9.8, 0.8, '1', 'red')
+        Chapter2.draw_node(ax, 9.8, 0.5, 'B\n20%', '#4ECDC4', 0.35)
+        ax.text(9.8, -0.8, '111\n3 bits', ha='center', fontsize=7,
+            bbox=dict(boxstyle='round', facecolor='#FFE6E6'))
+        
+        # Summary with reversed priorities
+        summary = ('Encoding AAAAAABBCD with reversed-priority codes:\n' +
+                '6×(3 bits) + 2×(3 bits) + 1×(2 bits) + 1×(1 bit) = 27 bits\n' +
+                'Average: 27/10 = 2.7 bits per character\n' +
+                '━━━━━━━━━━━━━━━━━━━━\n' +
+                'WASTED: 2.7 - 1.6 = 1.1 bits per character!!!\n' +
+                'That\'s 69% MORE bits than optimal!')
+        ax.text(5, -2.2, summary, ha='center', fontsize=10, 
+            bbox=dict(boxstyle='round', facecolor='#FF5555', alpha=0.8),
+            family='monospace', weight='bold')
+        
+        plt.tight_layout()
+        return fig
+    
+    @staticmethod
+    def draw_all_four_comparison():
+        fig, axes = plt.subplots(1, 4, figsize=(22, 6))
+        
+        titles = [
+            'Optimal\nH(P) = 1.6 bits',
+            'Uniform\nH(P,Q_unif) = 2.0\n+0.4 wasted',
+            'Wrong-Biased\nH(P,Q_bias) = 2.2\n+0.6 wasted',
+            'Reversed-Priority\nH(P,Q_rev) = 2.7\n+1.1 wasted!'
+        ]
+        colors = ['lightgreen', '#FFB6C6', '#FF8888', '#FF5555']
+        
+        for i, (ax, title, color) in enumerate(zip(axes, titles, colors)):
+            ax.set_xlim(0, 10)
+            ax.set_ylim(0, 10)
+            ax.axis('off')
+            ax.set_title(title, fontsize=11, weight='bold', pad=10,
+                        bbox=dict(boxstyle='round', facecolor=color, alpha=0.7))
+            
+            # Simplified representation - just show the codes
+            codes = [
+                [('A', '0', 1), ('B', '10', 2), ('C', '110', 3), ('D', '111', 3)],
+                [('A', '00', 2), ('B', '01', 2), ('C', '10', 2), ('D', '11', 2)],
+                [('C', '0', 1), ('A', '10', 2), ('B', '110', 3), ('D', '111', 3)],
+                [('D', '0', 1), ('C', '10', 2), ('A', '110', 3), ('B', '111', 3)]
+            ]
+            
+            y_pos = 8
+            for char, code, bits in codes[i]:
+                # Highlight A in red if it's not getting 1 bit
+                char_color = '#FF6B6B' if char == 'A' else 'black'
+                if char == 'A' and bits != 1:
+                    char_color = 'red'
+                    ax.text(1, y_pos, 'х', fontsize=16)
+                elif char == 'A' and bits == 1:
+                    ax.text(1, y_pos, '✓', fontsize=16, color='green')
+                
+                ax.text(2, y_pos, f'{char} (60%)' if char == 'A' else 
+                                f'{char} (20%)' if char == 'B' else f'{char} (10%)',
+                    fontsize=10, weight='bold', color=char_color)
+                ax.text(5, y_pos, f'→  {code}', fontsize=10, family='monospace')
+                ax.text(6.8, y_pos, f'({bits} bit{"s" if bits > 1 else ""})', 
+                    fontsize=9, style='italic')
+                y_pos -= 1.5
+            
+            # Show calculation
+            calcs = [
+                '0.6×1 + 0.2×2\n+0.1×3 + 0.1×3\n= 1.6 bits',
+                '0.6×2 + 0.2×2\n+0.1×2 + 0.1×2\n= 2.0 bits',
+                '0.6×2 + 0.2×3\n+0.1×1 + 0.1×3\n= 2.2 bits',
+                '0.6×3 + 0.2×3\n+0.1×2 + 0.1×1\n= 2.7 bits'
+            ]
+            ax.text(5, 0.8, calcs[i], ha='center', fontsize=9, 
+                family='monospace', weight='bold',
+                bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.7))
+        
+        plt.suptitle('Cross-Entropy Spectrum: From Optimal to Reversed-Priority',
+                    fontsize=16, weight='bold', y=0.98)
+        plt.tight_layout()
+        return fig
+
+
+    @staticmethod
+    def entropy(P_dist):
+        """Calculate Shannon entropy H(P)."""
+        return -sum(p * math.log2(p) for p in P_dist.values() if p > 0)
+
+
+    @staticmethod
+    def interactive_cross_entropy():
+        import math
+        from itertools import permutations
+
+        def code_lengths_to_distribution(code_dict, symbols):
+            """Derive implied distribution Q from code lengths.
+
+            For Huffman codes, code length L implies Q(x) ∝ 2^(-L).
+            We normalize to get a proper distribution.
+            """
+            unnormalized = {s: 2**(-code_dict[s]) for s in symbols}
+            total = sum(unnormalized.values())
+            return {s: unnormalized[s] / total for s in symbols}
+
+        def actual_cross_entropy(P, Q, symbols):
+            """Calculate actual cross-entropy H(P,Q) = -Σ P(x) log₂ Q(x)"""
+            return -sum(P[s] * math.log2(Q[s]) for s in symbols)
+
+        # True distribution
+        P = {'A': 0.6, 'B': 0.2, 'C': 0.1, 'D': 0.1}
+        symbols = ['A', 'B', 'C', 'D']
+        probs = [P[s] for s in symbols]
+
+        # Valid code length patterns for 4 symbols (satisfying Kraft inequality)
+        # Pattern 1: (2,2,2,2) - uniform tree
+        # Pattern 2: (1,2,3,3) - unbalanced tree
+        valid_patterns = [
+            (2, 2, 2, 2),
+            (1, 2, 3, 3)
+        ]
+
+        # Generate all possible code assignments
+        all_assignments = []
+        for pattern in valid_patterns:
+            # For each pattern, generate all permutations (which symbol gets which length)
+            for perm in permutations(pattern):
+                # Code length assignment
+                code_dict = {symbols[i]: perm[i] for i in range(4)}
+
+                # Average code length (Huffman practical value)
+                avg_code_length = sum(probs[i] * perm[i] for i in range(4))
+
+                # Derive implied distribution Q and calculate actual cross-entropy
+                Q = code_lengths_to_distribution(code_dict, symbols)
+                actual_ce = actual_cross_entropy(P, Q, symbols)
+
+                # Create a readable description
+                desc = ', '.join([f'{s}:{code_dict[s]}' for s in symbols])
+                Q_desc = ', '.join([f'{s}:{Q[s]:.3f}' for s in symbols])
+
+                all_assignments.append({
+                    'assignment': code_dict,
+                    'description': desc,
+                    'avg_code_length': avg_code_length,
+                    'actual_cross_entropy': actual_ce,
+                    'Q_distribution': Q,
+                    'Q_description': Q_desc,
+                    'pattern': str(pattern)
+                })
+
+        # First, ensure our four special cases are included
+        special_cases = [
+            {'A': 1, 'B': 2, 'C': 3, 'D': 3},  # Optimal
+            {'A': 2, 'B': 2, 'C': 2, 'D': 2},  # Uniform
+            {'A': 2, 'B': 3, 'C': 1, 'D': 3},  # Wrong-biased
+            {'A': 3, 'B': 3, 'C': 2, 'D': 1},  # Reversed
+        ]
+
+        # Add special cases first
+        unique_assignments = []
+        for special in special_cases:
+            avg_code_length = sum(probs[i] * special[symbols[i]] for i in range(4))
+            desc = ', '.join([f'{s}:{special[s]}' for s in symbols])
+            Q = code_lengths_to_distribution(special, symbols)
+            actual_ce = actual_cross_entropy(P, Q, symbols)
+            Q_desc = ', '.join([f'{s}:{Q[s]:.3f}' for s in symbols])
+
+            unique_assignments.append({
+                'assignment': special,
+                'description': desc,
+                'avg_code_length': avg_code_length,
+                'actual_cross_entropy': actual_ce,
+                'Q_distribution': Q,
+                'Q_description': Q_desc,
+                'pattern': '(1, 2, 3, 3)' if avg_code_length != 2.0 else '(2, 2, 2, 2)'
+            })
+
+        # Then add other unique assignments (by average code length)
+        special_ce_set = {round(a['avg_code_length'], 4) for a in unique_assignments}
+        for a in all_assignments:
+            ce_rounded = round(a['avg_code_length'], 4)
+            if ce_rounded not in special_ce_set:
+                # Check if we already have this code length
+                if not any(round(ua['avg_code_length'], 4) == ce_rounded for ua in unique_assignments):
+                    unique_assignments.append(a)
+
+        # Sort by average code length
+        unique_assignments.sort(key=lambda x: x['avg_code_length'])
+
+        # Extract data for plotting (use average code length for x-axis)
+        avg_code_lengths = [a['avg_code_length'] for a in unique_assignments]
+        actual_ces = [a['actual_cross_entropy'] for a in unique_assignments]
+        descriptions = [a['description'] for a in unique_assignments]
+        Q_descriptions = [a['Q_description'] for a in unique_assignments]
+        patterns = [a['pattern'] for a in unique_assignments]
+
+        # Create colors based on our 4 examples
+        # Check actual assignments, not just cross-entropy values
+        colors = []
+        special_labels = []
+        for a in unique_assignments:
+            assignment = a['assignment']
+
+            # Optimal: A=1, B=2, C=3, D=3
+            if assignment == {'A': 1, 'B': 2, 'C': 3, 'D': 3}:
+                colors.append('#90EE90')  # Light green - optimal
+                special_labels.append('⭐ OPTIMAL')
+            # Uniform: all 2
+            elif assignment == {'A': 2, 'B': 2, 'C': 2, 'D': 2}:
+                colors.append('#FFB6C6')  # Pink - uniform
+                special_labels.append('🔷 UNIFORM')
+            # Wrong-biased: C=1, A=2, B=3, D=3
+            elif assignment == {'A': 2, 'B': 3, 'C': 1, 'D': 3}:
+                colors.append('#FF8888')  # Light red - wrong-biased
+                special_labels.append('⚠️ WRONG-BIASED')
+            # Reversed: D=1, C=2, A=3, B=3 (complete opposite of optimal)
+            elif assignment == {'A': 3, 'B': 3, 'C': 2, 'D': 1}:
+                colors.append('#FF5555')  # Red - reversed
+                special_labels.append('🔄 REVERSED')
+            else:
+                colors.append('#B0C4DE')  # Light steel blue - others
+                special_labels.append('')
+
+        # Create interactive plot
+        fig = go.Figure()
+
+        # Add scatter plot for all assignments
+        fig.add_trace(go.Scatter(
+            x=avg_code_lengths,
+            y=[0] * len(avg_code_lengths),  # All at same y-level
+            mode='markers',
+            marker=dict(
+                size=16,
+                color=colors,
+                line=dict(width=2, color='black'),
+                symbol='circle'
+            ),
+            text=descriptions,
+            customdata=[[avg_len, actual_ce, desc, Q_desc, label, pattern]
+                       for avg_len, actual_ce, desc, Q_desc, label, pattern in
+                       zip(avg_code_lengths, actual_ces, descriptions, Q_descriptions, special_labels, patterns)],
+            hovertemplate='<b>%{customdata[4]}</b><br>' +
+                        '<b>Average Code Length:</b> %{customdata[0]:.2f} bits<br>' +
+                        '<b>Actual H(P,Q):</b> %{customdata[1]:.3f} bits<br>' +
+                        '─────────────────────<br>' +
+                        '<b>Code Lengths:</b> %{customdata[2]}<br>' +
+                        '<b>Implied Q:</b> {%{customdata[3]}}<br>' +
+                        '<i>(Q derived from code lengths via Q(x) ∝ 2^(-length))</i><br>' +
+                        '<extra></extra>',
+            showlegend=False
+        ))
+
+        # Add H(P) baseline
+        fig.add_hline(y=0, line_dash="solid", line_color="gray", line_width=1, opacity=0.3)
+        
+        H_P = Chapter2.entropy(P)
+        # Add vertical line at H(P)
+        fig.add_vline(x=H_P, line_dash="dash", line_color="blue", line_width=3,
+                    annotation_text=f"H(P) = {H_P:.2f} bits<br>(theoretical minimum)",
+                    annotation_position="top")
+
+        # Add annotations for special points
+        annotations_data = [
+            (1.6, "⭐ OPTIMAL", 0.08),
+            (2.0, "🔷 UNIFORM", 0.06),
+            (2.2, "⚠️ WRONG", 0.04),
+            (2.7, "🔄 REVERSED", 0.02)
+        ]
+
+        for x_pos, label, y_pos in annotations_data:
+            fig.add_annotation(
+                x=x_pos, y=y_pos,
+                text=label,
+                showarrow=True,
+                arrowhead=2,
+                arrowsize=1,
+                arrowwidth=2,
+                ax=0, ay=-40,
+                font=dict(size=11, color='black'),
+                bgcolor='white',
+                bordercolor='black',
+                borderwidth=2
+            )
+
+        # Update layout
+        fig.update_layout(
+            title={
+                'text': 'Complete Coding Spectrum: All Possible Code Assignments<br>' +
+                        '<sub>For P = {A:60%, B:20%, C:10%, D:10%} with 4-symbol binary codes<br>' +
+                        'Hover to see both Average Code Length (Huffman practical) and Actual H(P,Q) (theoretical)</sub>',
+                'x': 0.5,
+                'y': 0.95,
+                'xanchor': 'center',
+                'font': {'size': 16}
+            },
+            xaxis_title='Average Code Length (bits per symbol)',
+            yaxis_title='',
+            xaxis=dict(
+                range=[1.5, 2.8],
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='lightgray'
+            ),
+            yaxis=dict(
+                showticklabels=False,
+                range=[-0.05, 0.15]
+            ),
+            height=400,
+            hovermode='closest',
+            plot_bgcolor='white'
+        )
+
+        # Add range annotation
+        fig.add_annotation(
+            x=2.15, y=0.12,
+            text=f'Total Range: [{H_P:.2f}, 2.70] bits<br>' +
+                f'Span: {2.7 - H_P:.2f} bits ({((2.7/H_P - 1)*100):.0f}% variation)',
+            showarrow=False,
+            bgcolor='lightyellow',
+            bordercolor='black',
+            borderwidth=1,
+            font=dict(size=10)
+        )
+        return fig
+    
+    @staticmethod
+    def plot_cross_entropy_spectrum(avg_optimal, avg_uniform, avg_biased, avg_worst, H_P):
+        fig, ax = plt.subplots(figsize=(14, 8))
+        scenarios = ['Optimal\n(Q=P)', 'Uniform\nCodebook', 'Wrong-Biased\nCodebook', 'Reversed-Priority\n(Q_reversed)']
+        avg_bits_list = [avg_optimal, avg_uniform, avg_biased, avg_worst]
+        colors = ['lightgreen', '#FFB6C6', '#FF8888', '#FF5555']
+
+        bars = ax.bar(scenarios, avg_bits_list, color=colors, edgecolor='black', linewidth=2)
+
+        # Add entropy baseline
+        ax.axhline(H_P, color='blue', linestyle='--', linewidth=3, 
+                label=f'H(P) = {H_P:.4f} bits (theoretical minimum)')
+
+        # Add values on bars
+        for bar, bits in zip(bars, avg_bits_list):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height + 0.08,
+                f'{bits:.2f} bits', ha='center', va='bottom', 
+                fontsize=13, weight='bold')
+            
+            # Show waste
+            waste = bits - H_P
+            percent = ((bits/H_P - 1) * 100)
+            if waste > 0.01:
+                ax.text(bar.get_x() + bar.get_width()/2., height/2,
+                    f'+{waste:.2f}\n({percent:.0f}%)', ha='center', va='center',
+                    fontsize=11, weight='bold', color='darkred',
+                    bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.6))
+
+        ax.set_ylabel('Average Bits per Character', fontsize=14, weight='bold')
+        ax.set_title('Cross-Entropy Spectrum: From Optimal to Reversed-Priority',
+                    fontsize=16, weight='bold', pad=20)
+        ax.set_ylim(0, 3.0)
+        ax.grid(axis='y', alpha=0.3)
+        ax.legend(fontsize=12, loc='upper left')
+
+        # Add interpretation
+        interpretation = (
+            'When encoding data with distribution P:\n'
+            f'• BEST case (Q=P): H(P) = {H_P:.2f} bits\n'
+            f'• Reversed-priority (Q=reversed): H(P,Q_rev) = {avg_worst:.2f} bits\n'
+            f'• Range with code lengths (1,2,3,3): [{H_P:.2f}, {avg_worst:.2f}] bits\n'
+            f'• KL(P||Q) = H(P,Q) - H(P) = wasted bits due to mismatch'
+        )
+        ax.text(0.5, -0.28, interpretation, ha='center', fontsize=11,
+            bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8),
+            transform=ax.transAxes)
+        

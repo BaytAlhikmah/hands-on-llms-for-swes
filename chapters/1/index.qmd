@@ -1,15 +1,15 @@
 ---
-title: "Session 1: History, Background, and First Steps"
-subtitle: "An orientation session. No prereqs. Turn hype into curiosity."
+title: "Chapter 1: History, Background, and First Steps"
+subtitle: "An orientation chapter. No prereqs. Turn hype into curiosity."
 ---
 
 An orientation into modern LLMs: a brief history, what actually changed, and your first hands-on API calls.
 
-## Session Materials
+## Chapter Materials
 
 - [Lesson](lesson.qmd) — written walkthrough with references
 - [Notebook](notebook.ipynb) — runnable exercises
-- [Video](video.qmd) — recorded session
+- [Video](video.qmd) — recordings
 
 
 ## Readings

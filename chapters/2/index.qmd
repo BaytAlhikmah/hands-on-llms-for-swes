@@ -1,15 +1,15 @@
 ---
-title: "Session 2: Measuring Uncertainty"
+title: "Chapter 2: Measuring Uncertainty"
 subtitle: "Entropy, cross-entropy, and KL divergence — the math behind every language model's loss function."
 ---
 
-How do you measure whether predictions are any good? Claude Shannon answered this in 1948. This session builds his idea from scratch — first on a toy game, then on real data.
+How do you measure whether predictions are any good? Claude Shannon answered this in 1948. This chapter builds his idea from scratch — first on a toy game, then on real data.
 
-## Session Materials
+## Chapter Materials
 
 - [Lesson](lesson.md) — written walkthrough with references
 - [Notebook](notebook.ipynb) — runnable exercises
-- [Video](video.qmd) — recorded session
+- [Video](video.qmd) — recordings
 
 ## Readings
 

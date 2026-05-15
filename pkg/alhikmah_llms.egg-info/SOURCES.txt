@@ -1,8 +1,8 @@
 pyproject.toml
 alhikmah_llms/__init__.py
-alhikmah_llms/session3.py
+alhikmah_llms/chapter2.py
+alhikmah_llms/chapter3.py
 alhikmah_llms/transition_learner.py
-alhikmah_llms/viz.py
 alhikmah_llms.egg-info/PKG-INFO
 alhikmah_llms.egg-info/SOURCES.txt
 alhikmah_llms.egg-info/dependency_links.txt

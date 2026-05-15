@@ -1,10 +1,10 @@
-An orientation session. No prereqs. The goal is to turn hype into curiosity, then point that curiosity at the rest of the course.
+An orientation chapter. No prereqs. The goal is to turn hype into curiosity, then point that curiosity at the rest of the course.
 
 Read this alongside `notebook.ipynb` — every hands-on section below maps to a cell you should run.
 
 ## Learning Objectives
 
-By the end of this session, you will understand:
+By the end of this chapter, you will understand:
 
 - Why LLMs suddenly became useful in late 2022 — and why the math behind them is decades old
 - That a language model is one primitive: a probability distribution over the next token
@@ -155,7 +155,7 @@ For the hands-on parts we use **[OpenRouter](https://openrouter.ai)**: one API k
 
 2. Create an API key at [openrouter.ai/keys](https://openrouter.ai/keys).
 
-3. In `sessions/1/`, copy `.env.example` to `.env` and paste your key:
+3. In `chapters/1/`, copy `.env.example` to `.env` and paste your key:
 
     ```bash
     cp .env.example .env

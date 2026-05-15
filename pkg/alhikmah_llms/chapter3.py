@@ -1,4 +1,4 @@
-"""Visualization helpers for Session 3: Cross-Entropy and KL Divergence."""
+"""Visualization helpers for Chapter 3: Cross-Entropy and KL Divergence."""
 
 import math
 import numpy as np
@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 
 
-class Session3:
-    """Visualizations for Session 3: Cross-Entropy, KL Divergence, and Neural Networks."""
+class Chapter3:
+    """Visualizations for Chapter3 3: Cross-Entropy, KL Divergence, and Neural Networks."""
 
     @staticmethod
     def plot_cross_entropy_intuition(
