@@ -1,6 +1,6 @@
 In session 1, you saw that a language model does one thing: predict the next token. But how do you measure whether those predictions are any good? And how predictable is language in the first place?
 
-In 1948, Claude Shannon answered both questions with a single idea. This session builds that idea from scratch — first on a toy game, then on real data — until you can measure prediction quality the same way every language model does.
+In 1948, Claude Shannon answered both questions with a single idea. This session builds that idea from scratch — starting with entropy (the measure of unpredictability), then cross-entropy (the measure of prediction quality), and finally KL divergence (what training actually optimizes).
 
 Read this alongside `notebook.ipynb` — every hands-on section below maps to a cell you should run.
 
@@ -10,12 +10,11 @@ By the end of this session, you will understand:
 
 - What **entropy** is, in three different ways: average yes/no questions to guess an outcome, optimal compression size, and average surprise
 - How to compute entropy from a probability distribution, and what "bits" actually measure
-- What **conditional entropy** is and why it matters for prediction
-- That **predictable patterns have low entropy**, and exploiting those patterns is the core of both winning at games and building language models
-- How to build a **transition matrix** by counting: if X just happened, what's the probability of Y next?
-- That normalizing counts gives you a probability distribution, and you can sample from it to generate new sequences
-- That a **learning algorithm** can discover the same probabilities as counting, and why learning can generalize while counting cannot
-- Why transition matrices hit a wall when the vocabulary grows (the **V² problem**).
+- What **cross-entropy** is and why it's the loss function behind every language model
+- The decomposition **H(P,Q) = H(P) + KL(P||Q)** and why training only minimizes the KL divergence term
+- What **KL divergence** measures and why it's not symmetric
+- The difference between **bits** (log₂) and **nats** (ln), and why ML uses nats
+- What "loss" means: average surprise of the model on real data
 
 But first, where did these ideas come from? And why do they matter?
 
@@ -54,7 +53,7 @@ If you play optimally (binary search):
 
 This isn't luck. With 8 equally likely options, an optimal strategy needs exactly **log₂(8) = 3** yes/no questions on average — which matches the **entropy** of the distribution.
 
-→ **Notebook Exercise 1.** Visualize the binary decision tree for the uniform case (1-8).
+> **Notebook Exercise 1.** Visualize the binary decision tree for the uniform case (1-8).
 
 Now try a different game. Same setup, but this time I tell you: "50% of the time the number is 1. The other 50% is split equally among 2–8."
 
@@ -66,9 +65,9 @@ Your strategy changes:
 0.5 × 1  +  0.5 × (1 + 2.807)  =  2.4035 questions
 ```
 
-→ **Notebook Exercise 2.** Visualize the binary decision tree for the biased case and compare with the uniform case.
+> **Notebook Exercise 2.** Visualize the binary decision tree for the biased case and compare with the uniform case.
 
-→ **Notebook Exercise 3.** Visualize the probability distributions and see how entropy relates to the "spread" of probabilities.
+> **Notebook Exercise 3.** Visualize the probability distributions and see how entropy relates to the "spread" of probabilities.
 
 ---
 
@@ -137,7 +136,7 @@ Entropy = ∑ P(x) × log₂(1/P(x))
 
 **This IS the entropy formula!** We just derived it from first principles.
 
-→ **Notebook Exercise 4.** Compute entropy for different probability distributions using the formula.
+> **Notebook Exercise 4.** Compute entropy for different probability distributions using the formula.
 
 ---
 
@@ -166,7 +165,7 @@ def entropy(probs: list[float]) -> float:
     # Question: Why? How are both equivalent?
 ```
 
-→ **Notebook Exercise 5.** Implement and test the entropy function on various distributions.
+> **Notebook Exercise 5.** Implement and test the entropy function on various distributions.
 
 **Three examples:**
 
@@ -189,7 +188,7 @@ print(f"Certain: {entropy(certain):.2f} bits")  # 0.00
 - Low entropy → biased distribution → you can guess well
 - Zero entropy → deterministic → you know the answer
 
-Entropy measures unpredictability. In the rest of this session, we'll use it to measure how predictable your friend's Rock-Paper-Scissors moves are, and how predictable English character sequences are.
+Entropy measures unpredictability. Now that we know how to measure the uncertainty in data, how do we measure how well a *model* captures that uncertainty?
 
 ## 3. Three Ways to Think About Entropy
 
@@ -215,7 +214,7 @@ Encoded: `0 0 0 0 0 0 10 10 110 111` = **16 bits** → **1.6 bits/char**
 
 Entropy of `[0.6, 0.2, 0.1, 0.1]` = **1.57 bits** — our encoding is near-optimal!
 
-→ **Notebook Exercise 6.** Visualize how entropy-based compression saves space.
+> **Notebook Exercise 6.** Visualize how entropy-based compression saves space.
 
 **Key insight:** if a sequence has low entropy, you can compress it well. If it has high entropy, it's already random-looking and incompressible.
 
@@ -236,11 +235,11 @@ surprise = log2(1 / p) = -log₂(p)
 
 Entropy is just the **expected surprise** — the average over all possible outcomes weighted by their probabilities.
 
-→ **Notebook Exercise 7.** Visualize the surprise curve and see how surprise relates to probability.
+> **Notebook Exercise 7.** Visualize the surprise curve and see how surprise relates to probability.
 
-**This framing is critical for later:** when we train a model, we're minimizing its average surprise on real data. A well-trained model isn't surprised by what actually happens.
+**This framing is critical for what follows:** cross-entropy measures the average surprise of a *model* on real data. A well-trained model isn't surprised by what actually happens.
 
-→ **Notebook Exercise 8.** Explore entropy across different probability distributions using interactive visualizations.
+> **Notebook Exercise 8.** Explore entropy across different probability distributions using interactive visualizations.
 
 ---
 
@@ -286,253 +285,206 @@ H(Y|X) ≤ H(Y)
 ```
 Knowing X can only reduce (or leave unchanged) uncertainty about Y. Information never increases uncertainty. Equality holds when X and Y are independent.
 
-→ **Notebook Exercise 8c.** See these properties demonstrated with concrete examples.
+> **Notebook Exercise 8c.** See these properties demonstrated with concrete examples.
 
 ---
 
-## 4. Hands-on: Rock-Paper-Scissors
+## 4. Cross-Entropy: Measuring Prediction Quality
 
-Now that you understand entropy as a measure of unpredictability, let's apply it to a real problem.
+Now we move from measuring the uncertainty *in the data* to measuring *how well a model predicts the data*.
 
-Your friend thinks they play Rock-Paper-Scissors randomly. You've recorded 1,000 of their moves in `rps_opponent_moves.csv`. Let's see if they're actually random — and if their patterns have lower entropy than true randomness.
+Entropy H(P) tells you the average surprise when outcomes come from distribution P and you know P. But in machine learning, the true distribution is P while your model predicts a *different* distribution Q. How surprised is your model?
 
-→ **Notebook Exercise 9.** Load the moves and check the overall frequencies.
+This is **cross-entropy**:
 
-**Predict first:** do the overall frequencies (% Rock, % Paper, % Scissors) tell you if the sequence is random?
+```
+H(P,Q) = -∑ P(x) log Q(x)
+```
 
-**Answer:** No. Roughly 33% each looks random, but that doesn't mean the *sequence* is random. What matters is: **after Rock, what comes next?**
+It's the average surprise of model Q when reality follows P.
 
----
+**Key examples:**
+- If Q = P (perfect model): H(P,Q) = H(P) — minimum possible loss
+- If Q is uniform (knows nothing): H(P,Q) = log(n) — high loss
+- If Q is wrong (predicts the opposite): H(P,Q) is very high — maximum surprise
 
-## 5. Transition Matrices
+**Lower cross-entropy = better model.**
 
-A **transition matrix** counts: "How often does Y follow X?"
+> **Notebook Exercise 9.** Visualize true vs predicted distributions and see how cross-entropy measures the gap.
 
-For RPS, it's a 3×3 grid:
+> **Notebook Exercise 10.** See which outcomes contribute most to the cross-entropy loss.
 
-|           | → Rock | → Paper | → Scissors |
-|-----------|--------|---------|------------|
-| After Rock    | ?      | ?       | ?          |
-| After Paper   | ?      | ?       | ?          |
-| After Scissors| ?      | ?       | ?          |
-
-→ **Notebook Exercise 10.** Count the transitions and fill the matrix.
-
-**Predict first:** do you think the rows will be uniform, or will some moves be favored after others?
+> **Notebook Exercise 11.** Implement cross-entropy from scratch.
 
 ---
 
-## 6. Entropy of Each Row
+## 5. What Is "Loss"?
 
-Each row of the transition matrix is a probability distribution over the next move. We can compute the entropy of each row using **the same formula from section 2** — but now applied to real data.
+When a training loop prints "loss = 1.234", what does that number mean?
 
-→ **Notebook Exercise 10 (continued).** Calculate entropy for each row.
+It's the **cross-entropy** — the average surprise of the model on the training data. Specifically, for each example:
 
-**Lower entropy = more predictable = easier to exploit.**
+1. The model outputs a predicted distribution Q over possible outcomes
+2. Reality reveals the actual outcome (drawn from the true distribution P)
+3. The surprise is `-log Q(actual outcome)`
 
-A truly random player would have entropy ≈ 1.585 bits (= log₂(3)) for every row. Compare that to what you find in your friend's transition matrix — the gap tells you how much exploitable information they're giving away.
+Average this over all examples and you get the loss.
 
-**This is Shannon's insight in action:** the gap between the maximum entropy (1.585 bits for random) and your friend's actual entropy represents exploitable information.
+**Example:**
+- Your model says: "After 'q', 'u' has probability 0.6"
+- Reality: 'u' appears
+- Surprise: -ln(0.6) = 0.511 nats
 
----
-
-## 6.1. Conditional Entropy
-
-Notice what we just measured: **uncertainty about the next move, given what we already know** (the previous move).
-
-This is called **conditional entropy** — written as H(next | previous).
-
-So far we've measured entropy of single distributions. But transition matrices measure something more useful: **How uncertain is the next thing given the current state?**
-
-You'll compute these values in the notebook. Some rows will have lower entropy (more predictable) and others will be closer to the maximum of 1.585 bits (nearly random). Knowing the previous move **reduces uncertainty**, which is why prediction becomes possible.
-
-**You've been learning conditional entropy all along** — we just didn't name it yet. Every time you see "P(next | current)" or "after X", that's conditional probability, and its entropy is conditional entropy.
-
----
-
-## 7. Exploiting the Pattern
-
-Now that you have the probabilities, you can predict their next move and play the counter:
-- They'll likely play Paper → you play Scissors
-- They'll likely play Scissors → you play Rock
-- They'll likely play Rock → you play Paper
-
-→ **Notebook Exercise 11.** Play against them using the counting model.
-
-**Predict first:** what win rate would you expect against a random player? What about against your friend?
-
-The entropy gap translates directly to win rate. **Prediction is exploitation.**
-
----
-
-## 8. Learning the Same Thing Automatically
-
-The counting approach works perfectly. But what if you *didn't* count explicitly? What if you started with a 3×3 matrix of **random numbers** and let an algorithm discover the patterns by looking at the data?
-
-The helper class `TransitionLearner` does exactly this:
-1. Starts with uniform probabilities (knows nothing)
-2. Looks at each transition, measures how wrong its guess was
-3. Adjusts the numbers to be slightly less wrong
-4. Repeats until the loss stops improving
-
-→ **Notebook Exercise 12.** Train a `TransitionLearner` on the RPS data.
-
-You'll see the loss decrease over time. By the end, the learned probabilities are **nearly identical** to the counted ones.
-
-**Key insight:** counting and learning from data solve the same problem. Counting works when the problem is tiny (3 moves, 1,000 examples). Learning works when the problem is huge (30,000 tokens, billions of examples) — you can't count every possible sequence, but you can learn patterns.
-
-**But there's a deeper difference:** Counting can only **memorize** observed transitions. If a transition never appears in your data, counting assigns it probability 0. Learning methods can **generalize** from similar patterns, assigning sensible probabilities even to sequences never seen before. This ability to share statistical structure across similar contexts is what makes neural language models possible.
-
----
-
-## 9. What Is "Loss"?
-
-When the notebook prints "loss = 1.234", what does that number mean?
-
-It's the **average surprise** across all transitions: the average `-log₂(probability the model assigned to what actually happened)`.
-
-Example:
-- Your model says: "After Rock, Paper has probability 0.4"
-- Reality: your friend plays Paper
-- Surprise: `-log₂(0.4) = 1.32 bits`
-
-Do this for every transition and average. That's the loss.
+Do this for every prediction and average. That's the loss.
 
 **Lower loss = less surprised = better model.**
 
-If the model were perfect (assigns probability 1.0 to what happens, 0 to everything else), loss would be 0. If the model is terrible (assigns probability 0.1 to what happens), loss is high.
+If the model were perfect (assigns probability 1.0 to what happens, 0 to everything else), loss would be 0. If the model is terrible (assigns probability 0.01 to what happens), loss is high.
 
-This is what the learning algorithm minimizes. Every time it adjusts the numbers, it's trying to be less surprised by the data.
-
----
-
-## 11. From 3×3 to 28×28: Character Bigrams
-
-Same idea, bigger problem. Instead of 3 moves (Rock, Paper, Scissors), we have **28 characters**:
-- 26 letters (a–z)
-- `<S>` (start of name)
-- `<E>` (end of name)
-
-Instead of predicting the next RPS move, we predict the next character in a name.
-
-The transition matrix grows from 3×3 to 28×28, but the approach is identical.
+This is what the learning algorithm minimizes. Every time it adjusts parameters, it's trying to be less surprised by the data.
 
 ---
 
-## 12. What Is a Bigram?
+## 6. Bits vs Nats
 
-A **bigram** is a pair of consecutive characters.
+In Part 0, we measured entropy in **bits** using log₂. In machine learning, we switch to **nats** using natural log (ln).
 
-Example: `"emma"` produces these bigrams:
+Why?
+- PyTorch's `nn.CrossEntropyLoss()` uses natural log
+- Derivatives are cleaner: d/dx(ln x) = 1/x (vs d/dx(log₂ x) = 1/(x ln 2))
+- Standard in ML papers and frameworks
+
+**Conversion:** bits = nats / ln(2) ≈ nats × 1.443
+
+From now on, when we write cross-entropy and loss, we use **nats** (natural log) unless stated otherwise.
+
+> **Notebook Exercise 12.** Compare cross-entropy in bits vs nats.
+
+---
+
+## 7. The Key Decomposition: H(P,Q) = H(P) + KL(P||Q)
+
+Here's the most important equation in this session:
+
 ```
-<S> → e
-e   → m
-m   → m
-m   → a
-a   → <E>
+Cross-Entropy = Entropy + KL Divergence
+H(P,Q)        = H(P)   + KL(P||Q)
 ```
 
-The `<S>` and `<E>` tokens mark boundaries. Without them, the model wouldn't know which characters tend to start or end names.
+What does this mean?
 
-→ **Notebook Exercise 13.** Print bigrams for a few names.
+- **H(P)** is the entropy of the true distribution — the irreducible uncertainty in the data. No model can do better than this. It's a property of the problem, not the model.
+- **KL(P||Q)** is the KL divergence — how much *extra* surprise the model adds beyond what's inherent in the data. This is the gap between your model and perfection.
 
----
+**When training a model, H(P) is constant.** You can't change the data. So minimizing cross-entropy is equivalent to minimizing KL divergence — making your model's predictions match reality as closely as possible.
 
-## 13. Counting Bigrams
+The minimum possible loss is H(P), achieved when Q = P (KL = 0).
 
-→ **Notebook Exercise 14.** Build a 28×28 count matrix from the training data.
-
-The notebook will show you the full matrix and let you explore which character pairs are common and which never occur. You'll normalize the counts to probabilities — same process as RPS, just a bigger matrix.
-
----
-
-## 14. Entropy Per Character
-
-Now compute the entropy of each row — "After seeing this character, how unpredictable is the next one?"
-
-**Predict first:** which characters do you think have the lowest entropy (most predictable next character)? Which have the highest?
-
-Think about it: after 'q', what almost always follows? After 'a', how many different characters could come next?
-
-Compare the average conditional entropy of the bigram model to the entropy of random guessing (log₂(28) = 4.81 bits). How much has the model reduced uncertainty?
+> **Notebook Exercise 13.** Visualize the decomposition as a stacked bar chart.
 
 ---
 
-## 15. Generating Names
+## 8. KL Divergence
 
-To generate a name:
-1. Start with `<S>`
-2. Sample the next character from `P(next | current)`
-3. Repeat until we sample `<E>`
+KL divergence (Kullback-Leibler divergence) measures how one probability distribution differs from another:
 
-→ **Notebook Exercise 15.** Generate 20 names using the counting model.
+```
+KL(P||Q) = ∑ P(x) log(P(x) / Q(x))
+```
 
-**Predict first:** will they look like real names? Will they be pronounceable? Will any be complete gibberish?
+**Key properties:**
 
-Run the notebook and see. Think about what the model learned *just from counting pairs* — and what it's still missing.
+1. **Non-negative:** KL(P||Q) ≥ 0, always
+2. **Zero iff equal:** KL(P||Q) = 0 if and only if P = Q
+3. **NOT symmetric:** KL(P||Q) ≠ KL(Q||P) in general
 
----
+The asymmetry matters:
+- **Forward KL:** KL(P||Q) — penalizes when Q assigns low probability where P is high. The model must cover all modes of the data. This is what ML training minimizes.
+- **Reverse KL:** KL(Q||P) — penalizes when Q assigns high probability where P is low. The model avoids putting mass where the data isn't.
 
-## 16. Learning Bigrams from Scratch
+> **Notebook Exercise 14.** Compute KL divergence and verify the decomposition.
 
-→ **Notebook Exercise 16.** Train a `TransitionLearner` on the bigram data.
-
-Watch the loss decrease over training steps. How close do the learned probabilities get to the counted ones?
-
-**Same answer, different path.** Counting works because we have enough data to see every bigram hundreds of times. The learning algorithm gets there by iteratively finding patterns that reduce surprise.
-
----
-
-## 17. Generate from the Learned Model
-
-→ **Notebook Exercise 17.** Generate names using the learned model.
-
-**Predict first:** will they look different from the counting model's names? Why or why not?
+> **Notebook Exercise 15.** See that KL(P||Q) ≠ KL(Q||P) with concrete examples.
 
 ---
 
-## 18. The V² Wall
+## 9. Training = Minimizing Cross-Entropy
 
-Our bigram model is a V × V matrix, where V = vocabulary size.
+Now we can state precisely what "training" means:
 
-- V = 28 characters → 784 parameters
-- V = 50,000 words → 2.5 billion parameters
-- V = 128,000 tokens (Llama 3) → **16 billion parameters**
+1. You have training data drawn from some true distribution P
+2. Your model produces a predicted distribution Q (parameterized by weights)
+3. Training adjusts the weights to minimize H(P,Q)
+4. Since H(P) is constant, this is equivalent to minimizing KL(P||Q)
+5. The model converges when Q ≈ P
 
-You could store these matrices on modern hardware — but you'd never see enough data to fill most entries with meaningful probabilities. **The problem is data sparsity, not storage.**
+As training progresses:
+- The predicted distribution Q moves closer to the true distribution P
+- Cross-entropy decreases toward H(P)
+- KL divergence decreases toward 0
 
-→ **Notebook Exercise 18.** See the table of vocabulary sizes and memory requirements.
+> **Notebook Exercise 16.** Watch a model converge: Q approaches P over training steps.
 
-| Vocabulary | V | V² | Memory |
-|------------|---|----|--------|
-| Characters (this notebook) | 28 | 784 | 3 KB |
-| GPT-2 BPE tokens | 50,257 | 2.5B | 10 GB |
-| Llama 3 tokens | 128,256 | 16.5B | 66 GB |
+> **Notebook Exercise 17.** Visualize the cross-entropy loss surface and see the unique minimum at Q = P.
 
-**The problem is clear:** storing a full transition matrix for realistic vocabularies is computationally infeasible. Modern language models need a different approach to represent these probabilities efficiently.
+---
 
-**We'll explore better solutions in the next session.**
+## 10. Cross-Entropy in Practice
+
+Let's connect this to a concrete example. Consider a bigram model predicting what character follows 'q':
+
+- True distribution P: 'u' appears 99% of the time
+- Early in training: model predicts uniformly → high cross-entropy
+- Late in training: model predicts 'u' with high probability → low cross-entropy
+
+The cross-entropy drops from ~1.6 nats (uniform) to ~0.06 nats (near-perfect prediction for this context).
+
+In practice, we monitor training by plotting **loss curves** — cross-entropy over epochs:
+- Training loss should decrease smoothly
+- Validation loss should track training loss
+- If validation >> training → overfitting
+- If both plateau → model converged
+
+> **Notebook Exercise 18.** See cross-entropy decrease as a bigram model learns.
+
+> **Notebook Exercise 19.** Interpret training and validation loss curves.
+
+---
+
+## 11. Building Intuition
+
+The best way to internalize cross-entropy is to experiment. Try different true and predicted distributions and observe how cross-entropy changes:
+
+- **Confident and correct** → low cross-entropy
+- **Uncertain (uniform)** → moderate cross-entropy
+- **Confident and wrong** → very high cross-entropy!
+
+Being confidently wrong is worse than being uncertain. This is why well-calibrated models (that know what they don't know) are valuable.
+
+> **Notebook Exercise 20.** Experiment with your own distributions.
+
+> **Notebook Exercise 21.** Visualize custom examples.
 
 ---
 
 ## Summary
 
-**Core concepts:**
+**Entropy (Part 0):**
 - **Entropy = unpredictability.** Three equivalent views: average yes/no questions, optimal compression size, average surprise.
-- **Conditional entropy H(Y|X)** measures uncertainty about Y given X. Transition matrices estimate these conditional probabilities.
-- **Lower entropy = exploitable patterns.** When entropy is below the random baseline, you can exploit the difference.
+- **Key properties:** non-negative, maximized by uniform distribution, conditioning reduces entropy.
+- Measured in **bits** (log₂).
 
-**How models work:**
-- **Transition matrices** count "Y follows X" and normalize to probabilities P(next | current).
-- **Loss = average surprise.** Training minimizes this by learning better probability estimates.
-- **Counting vs learning:** Both find the same probabilities when data is dense. Learning generalizes to unseen patterns; counting cannot.
+**Cross-Entropy and KL Divergence (Parts 1-4):**
+- **Cross-entropy H(P,Q)** = average surprise of model Q when reality follows P.
+- **Decomposition:** H(P,Q) = H(P) + KL(P||Q). Training minimizes KL(P||Q).
+- **KL divergence** is NOT symmetric. Forward KL (what ML uses) ensures the model covers all modes.
+- **Loss = cross-entropy** in nats (natural log). Lower loss = better model.
+- **Training** = adjusting parameters to minimize cross-entropy = making Q match P.
 
-**The scaling problem:**
-- **V² wall:** A 128K-token vocabulary needs 16 billion parameters for a full transition matrix.
-- Modern LMs use compressed representations that share structure across similar contexts.
-- Character bigrams (28×28) demonstrate the approach before vocabulary explosion forces architectural changes.
-
-That's why we need neural networks: not just for scale, but for generalization.
+**What's next (Session 3):**
+- Apply these concepts to real data: Rock-Paper-Scissors and character bigrams
+- Build transition matrices, measure their entropy, and exploit patterns
+- Hit the V² wall that makes neural networks necessary
 
 ---
 
@@ -540,9 +492,9 @@ That's why we need neural networks: not just for scale, but for generalization.
 
 1. You computed entropy three different ways (guessing game, compression, surprise). Which framing clicked for you? Which felt least intuitive?
 2. Shannon's key insight was that information = reduction of uncertainty. How does this differ from everyday notions of "information" (like file size or word count)? When would these measures disagree?
-3. The RPS model had lower entropy than random, so you could win. Where else in software do you exploit predictability? (Think: caching, compression, autocomplete, prefetching...)
-4. The loss measures average surprise. Can the loss ever go below the true entropy of the data? Why or why not?
-5. We generated names by sampling from bigram probabilities. They looked plausible but weird. What information is the bigram model *missing* that a human has?
-6. The V² wall shows that full transition matrices don't scale. What are the tradeoffs between having a complete V×V matrix versus using a more compressed representation?
-7. The loss function is just average surprise. Why does minimizing surprise produce a useful model? What are we assuming about the data?
-8. In session 1, you saw that LLMs predict the next *token*, not the next character. How would a token-level bigram model differ from a character-level one? Would the entropy be higher or lower?
+3. Cross-entropy decomposes into H(P) + KL(P||Q). Why is it important that H(P) is constant during training? What would go wrong if it weren't?
+4. KL divergence is not symmetric. In what practical situations would the choice between KL(P||Q) and KL(Q||P) lead to different model behavior?
+5. Being "confidently wrong" produces higher cross-entropy than being "uncertain." How does this relate to model calibration? Why might a well-calibrated model be preferred over a more accurate but poorly calibrated one?
+6. The loss function is just average surprise. Why does minimizing surprise produce a useful model? What are we assuming about the data?
+7. We switched from bits (log₂) to nats (ln) for ML. Does the choice of log base affect what the model learns, or only the numerical scale of the loss?
+8. In session 1, you saw that LLMs predict the next *token*. How would cross-entropy loss differ between a character-level model and a token-level model trained on the same text?
