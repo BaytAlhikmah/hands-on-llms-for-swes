@@ -1,0 +1,51 @@
+device=cuda  model=bert-base-uncased  precision=bf16-autocast
+>>> BEFORE training
+[STS suite before] STS12 30.87  STS13 59.89  STS14 47.73  STS15 60.29  STS16 63.73  STS-B 47.29  SICK-R 58.65  ||  AVG 52.64
+AllNLI pairs: 942,069
+total_steps=7,360  warmup=736
+step    200/7360  loss 1.0532  8.9 it/s  eta 13.4m
+step    400/7360  loss 0.8596  9.3 it/s  eta 12.4m
+step    600/7360  loss 0.7627  9.5 it/s  eta 11.9m
+step    800/7360  loss 0.7209  9.6 it/s  eta 11.4m
+step   1000/7360  loss 0.6888  9.6 it/s  eta 11.0m
+  [step 1000] STS-B(test) Spearman: 69.16
+step   1200/7360  loss 0.6725  9.2 it/s  eta 11.2m
+step   1400/7360  loss 0.6525  9.3 it/s  eta 10.7m
+step   1600/7360  loss 0.6371  9.3 it/s  eta 10.3m
+step   1800/7360  loss 0.6287  9.4 it/s  eta 9.9m
+step   2000/7360  loss 0.6198  9.4 it/s  eta 9.5m
+  [step 2000] STS-B(test) Spearman: 72.24
+step   2200/7360  loss 0.6056  9.2 it/s  eta 9.3m
+step   2400/7360  loss 0.5950  9.3 it/s  eta 8.9m
+step   2600/7360  loss 0.5991  9.3 it/s  eta 8.5m
+step   2800/7360  loss 0.5902  9.3 it/s  eta 8.1m
+step   3000/7360  loss 0.5759  9.4 it/s  eta 7.8m
+  [step 3000] STS-B(test) Spearman: 74.80
+step   3200/7360  loss 0.5685  9.2 it/s  eta 7.5m
+step   3400/7360  loss 0.5639  9.2 it/s  eta 7.1m
+step   3600/7360  loss 0.5622  9.3 it/s  eta 6.8m
+step   3800/7360  loss 0.5657  9.3 it/s  eta 6.4m
+step   4000/7360  loss 0.5636  9.3 it/s  eta 6.0m
+  [step 4000] STS-B(test) Spearman: 74.96
+step   4200/7360  loss 0.5574  9.2 it/s  eta 5.7m
+step   4400/7360  loss 0.5520  9.3 it/s  eta 5.3m
+step   4600/7360  loss 0.5517  9.3 it/s  eta 4.9m
+step   4800/7360  loss 0.5439  9.3 it/s  eta 4.6m
+step   5000/7360  loss 0.5377  9.4 it/s  eta 4.2m
+  [step 5000] STS-B(test) Spearman: 74.21
+step   5200/7360  loss 0.5358  9.3 it/s  eta 3.9m
+step   5400/7360  loss 0.5400  9.3 it/s  eta 3.5m
+step   5600/7360  loss 0.5298  9.3 it/s  eta 3.1m
+step   5800/7360  loss 0.5351  9.4 it/s  eta 2.8m
+step   6000/7360  loss 0.5318  9.4 it/s  eta 2.4m
+  [step 6000] STS-B(test) Spearman: 75.69
+step   6200/7360  loss 0.5256  9.3 it/s  eta 2.1m
+step   6400/7360  loss 0.5302  9.3 it/s  eta 1.7m
+step   6600/7360  loss 0.5285  9.4 it/s  eta 1.4m
+step   6800/7360  loss 0.5196  9.4 it/s  eta 1.0m
+step   7000/7360  loss 0.5207  9.4 it/s  eta 0.6m
+  [step 7000] STS-B(test) Spearman: 75.99
+step   7200/7360  loss 0.5205  9.3 it/s  eta 0.3m
+>>> AFTER training
+[STS suite after] STS12 70.24  STS13 70.69  STS14 70.54  STS15 79.04  STS16 74.10  STS-B 75.97  SICK-R 72.48  ||  AVG 73.29
+saved -> sbert_bert_base.pt
