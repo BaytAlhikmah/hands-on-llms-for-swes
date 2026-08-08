@@ -242,12 +242,9 @@ But there's another fundamental limitation: **context length**. Even if storage 
 ## Summary
 
 **From Counting to Learning:**
-
 - A **transition matrix** counts how often Y follows X, then normalizes to probabilities P(Y|X).
 - **Row entropy** measures how predictable each context is. Lower entropy = more exploitable patterns.
-
 - **Counting** works perfectly when the problem is small and every transition is observed many times.
-
 - **Learning** converges to nearly the same probabilities as counting **in fully-observed settings** (like our 3×3 and 28×28 examples) — very close but not bit-identical due to the iterative optimization process. But in sparse, high-dimensional settings, learning can generalize beyond observed counts through parameter sharing and interpolation. *How* it does this is Chapter 4's question.
 
 **Rock-Paper-Scissors (3×3):**
@@ -277,11 +274,13 @@ You'll learn:
 - What happens when one neuron isn't enough (the XOR problem)
 - How multiple neurons working together can learn patterns a single neuron can't
 
+By the end of Chapter 4, you'll be able to build `TransitionLearner` yourself from scratch. No mystery, no magic — just math you can see.
+
 ---
 
 ## Discussion Questions
 
-1. **Counting vs Learning:** The RPS and bigram models converged to nearly identical probabilities via counting and learning. If they're equivalent, why bother learning? When does learning become necessary? And more importantly: **how does the learning actually work?** What's happening inside that black box during those 200 training steps?
+1. **Counting vs Learning:** The RPS and bigram models converged to identical probabilities via counting and learning. If they're equivalent, why bother learning? When does learning become necessary? And more importantly: **how does the learning actually work?** What's happening inside that black box during those 200 training steps?
 
 2. **Row Entropy as a Predictor:** We computed the entropy of each row (e.g., "after Rock, what's next?"). A row with entropy 0.8 bits is more predictable than one with 1.5 bits. How could you use row entropies to decide **when** to exploit vs play randomly?
 
