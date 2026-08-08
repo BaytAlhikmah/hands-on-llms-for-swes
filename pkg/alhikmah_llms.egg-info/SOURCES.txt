@@ -2,6 +2,8 @@ pyproject.toml
 alhikmah_llms/__init__.py
 alhikmah_llms/chapter2.py
 alhikmah_llms/chapter3.py
+alhikmah_llms/chapter4.py
+alhikmah_llms/chapter9.py
 alhikmah_llms/transition_learner.py
 alhikmah_llms.egg-info/PKG-INFO
 alhikmah_llms.egg-info/SOURCES.txt
